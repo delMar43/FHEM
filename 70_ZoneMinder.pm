@@ -20,7 +20,7 @@ sub ZoneMinder_Initialize {
   $hash->{FW_detailFn} = "ZoneMinder_DetailFn";
   $hash->{WriteFn}   = "ZoneMinder_Write";
 
-  $hash->{AttrList} = "readingsConfig " . $readingFnAttributes;
+  $hash->{AttrList} = "streamUrl " . $readingFnAttributes;
   $hash->{MatchList} = { "1:ZM_Monitor" => "^.*" };
 
   Log3 '', 3, "ZoneMinder - Initialize done ...";
@@ -60,7 +60,11 @@ sub ZoneMinder_Define {
     } else {
       $hash->{helper}{ZM_WEB_URL} = "http://$a[2]/zm";
     }
-    
+
+    my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
+    my $zmUsername = $hash->{helper}{ZM_USERNAME};
+    my $zmPassword = $hash->{helper}{ZM_PASSWORD};
+    readingsSingleUpdate($hash, "ZMConsoleUrl", "$zmWebUrl/index.php?username=$zmUsername&password=$zmPassword&action=login&view=console", 0);
     ZoneMinder_API_Login($hash);
   }
 
@@ -162,6 +166,7 @@ sub ZoneMinder_API_ReadConfig_Callback {
 #        Log3 $name, 3, "url ".$param->{url}." returned $authHashSecret";
         ZoneMinder_calcAuthHash($hash);
       }
+
   }
 
   return undef;
@@ -318,11 +323,12 @@ sub ZoneMinder_DetailFn {
   my ( $FW_wname, $deviceName, $FW_room ) = @_;
 
   my $hash = $defs{$deviceName};
-  my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
-  my $zmUsername = $hash->{helper}{ZM_USERNAME};
-  my $zmPassword = $hash->{helper}{ZM_PASSWORD};
-
-  return "<div><a href='$zmWebUrl?username=$zmUsername&password=$zmPassword&action=login&view=console' target='_blank'>Go to ZoneMinder console</a></div>";
+  my $zmConsoleUrl = ReadingsVal($deviceName, "ZMConsoleUrl", undef);
+  if ($zmConsoleUrl) {
+    return "<div><a href='$zmConsoleUrl' target='_blank'>Go to ZoneMinder console</a></div>";
+  } else {
+    return undef;
+  }
 }
 
 
