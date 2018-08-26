@@ -233,26 +233,33 @@ sub ZoneMinder_API_ReadMonitors_Callback {
   my @monitors = split(/{"Monitor"\:{/, $data);
 
   foreach my $monitorData (@monitors) {
-    my $msg = "it - $monitorData\n";
     my $monitorId = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Id');
 
     if ( $monitorId =~ /^[0-9]+$/ ) {
+      my $newDevName = "ZM_Monitor_".$name."_$monitorId";
       if(not defined($modules{ZM_Monitor}{defptr}{$monitorId})) {
-        my $newDevName = "ZM_Monitor_".$name."_$monitorId";
-        my $function = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Function');
-        my $enabled = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Enabled');
-        my $streamReplayBuffer = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'StreamReplayBuffer');
-
         CommandDefine(undef, "$newDevName ZM_Monitor $zmHost $monitorId");
         $attr{$newDevName}{room} = "ZM_Monitor";
-        Log3 $name, 3, "Monitor ID: $monitorId, Function: $function, Enabled: $enabled, StreamReplayBuffer: $streamReplayBuffer";
       }
+      ZoneMinder_UpdateMonitorAttributes($hash, $monitorData, $newDevName);
     }
   }
 
 #  my $dispatchResult = Dispatch($hash, $msg, undef);
 
   return undef;  
+}
+
+sub ZoneMinder_UpdateMonitorAttributes {
+  my ( $hash, $monitorData, $deviceName ) = @_;
+
+  my $function = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Function');
+  my $enabled = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Enabled');
+  my $streamReplayBuffer = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'StreamReplayBuffer');
+
+  $attr{$deviceName}{function} = $function;
+  $attr{$deviceName}{enabled} = $enabled;
+  $attr{$deviceName}{streamReplayBuffer} = $streamReplayBuffer;
 }
 
 sub ZoneMinder_GetCookies {
@@ -357,11 +364,16 @@ sub ZoneMinder_DetailFn {
 
 
 sub ZoneMinder_Get {
-  my ( $hash, $param ) = @_;
-
+  my ( $hash, $name, $opt, $args ) = @_;
   my $name = $hash->{NAME};
+
+  if ("updateMonitors" eq $opt) {
+    ZoneMinder_API_ReadMonitors($hash);
+    return undef;
+  }
+
 #  Log3 $name, 3, "ZoneMinder ($name) - Get done ...";
-  return undef;
+  return "Unknown argument $opt, choose one of updateMonitors";
 }
 
 sub ZoneMinder_Set {

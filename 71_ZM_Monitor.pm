@@ -13,7 +13,7 @@ sub ZM_Monitor_Initialize {
   $hash->{FW_detailFn} = "ZM_Monitor_DetailFn";
   $hash->{ParseFn}     = "ZM_Monitor_Parse";
 
-  $hash->{AttrList} = $readingFnAttributes;
+  $hash->{AttrList} = "function enabled streamReplayBuffer".$readingFnAttributes;
   $hash->{Match} = "^.*";
 
 #  Log3 '', 3, "ZM_Monitor - Initialize done ...";
@@ -101,7 +101,10 @@ sub ZM_Monitor_DetailFn {
 
   my $hash = $defs{$deviceName};
   ZM_Monitor_UpdateStreamUrls($hash);
-  my $streamUrl = ReadingsVal($deviceName, 'pubStreamUrl', undef);
+  my $streamUrl = ReadingsVal($deviceName, 'streamUrl', undef);
+  if (not $streamUrl) {
+    $streamUrl = ReadingsVal($deviceName, 'pubStreamUrl', undef);
+  }
   if ($streamUrl) {
     return "<div><img src='$streamUrl'></img></div>";
   } else {
