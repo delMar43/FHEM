@@ -118,6 +118,7 @@ sub ZoneMinder_API_Login_Callback {
       
       ZoneMinder_GetCookies($hash, $param->{httpheader});
       ZoneMinder_API_ReadConfig($hash);
+      ZoneMinder_API_ReadMonitors($hash);
     }
   }
   
@@ -174,7 +175,7 @@ sub ZoneMinder_API_ReadConfig_Callback {
 
 sub ZoneMinder_GetConfigValueByKey {
   my ($hash, $config, $key) = @_;
-  my $searchString = '"'.$key.'":';
+  my $searchString = '"'.$key.'":"';
   return ZoneMinder_GetFromJson($hash, $config, $searchString);
 }
 
@@ -189,31 +190,33 @@ sub ZoneMinder_GetFromJson {
   my $name = $hash->{NAME};
 
   my $searchLength = length($searchString);
-  my $startIdx = index($config, $searchString) + $searchLength;
+  my $startIdx = index($config, $searchString);
+#  Log3 $name, 5, "$searchString found at $startIdx";
+  $startIdx += $searchLength;
   my $endIdx = index($config, '"', $startIdx);
   my $frame = $endIdx - $startIdx;
   my $searchResult = substr $config, $startIdx, $frame;
 
-  Log3 $name, 5, "looking for $searchString. length: $searchLength. start: $startIdx. end: $endIdx. result: $searchResult";
+#  Log3 $name, 5, "looking for $searchString - length: $searchLength. start: $startIdx. end: $endIdx. result: $searchResult";
   
   return $searchResult;
 }
 
-sub ZoneMinder_API_ReadMonitorConfig {
-  my ($hash, $zmMonitorId) = @_;
+sub ZoneMinder_API_ReadMonitors {
+  my ( $hash ) = @_;
   my $name = $hash->{NAME};
 
   my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
 
   my $apiParam = {
-    url => "$zmWebUrl/api/monitors/$zmMonitorId.json",
+    url => "$zmWebUrl/api/monitors.json",
     method => "GET",
-    callback => \&ZoneMinder_API_ReadMonitorConfig_Callback,
+    callback => \&ZoneMinder_API_ReadMonitors_Callback,
     hash => $hash
   };
 
   if ($hash->{HTTPCookies}) {
-    Log3 $name, 5, "$name.ZoneMinder_API_ReadConfig: Adding Cookies: " . $hash->{HTTPCookies};
+    Log3 $name, 5, "$name.ZoneMinder_API_ReadMonitors: Adding Cookies: " . $hash->{HTTPCookies};
     $apiParam->{header} .= "\r\n" if ($apiParam->{header});
     $apiParam->{header} .= "Cookie: " . $hash->{HTTPCookies};
   }
@@ -221,14 +224,33 @@ sub ZoneMinder_API_ReadMonitorConfig {
   return HttpUtils_NonblockingGet($apiParam);
 }
 
-sub ZoneMinder_API_ReadMonitorConfig_Callback {
+sub ZoneMinder_API_ReadMonitors_Callback {
   my ($param, $err, $data) = @_;
   my $hash = $param->{hash};
   my $name = $hash->{NAME};
+  my $zmHost = $hash->{helper}{ZM_HOST};
 
-  my $msg = "monitors:$data";
+  my @monitors = split(/{"Monitor"\:{/, $data);
 
-  my $dispatchResult = Dispatch($hash, $msg, undef);
+  foreach my $monitorData (@monitors) {
+    my $msg = "it - $monitorData\n";
+    my $monitorId = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Id');
+
+    if ( $monitorId =~ /^[0-9]+$/ ) {
+      if(not defined($modules{ZM_Monitor}{defptr}{$monitorId})) {
+        my $newDevName = "ZM_Monitor_".$name."_$monitorId";
+        my $function = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Function');
+        my $enabled = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Enabled');
+        my $streamReplayBuffer = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'StreamReplayBuffer');
+
+        CommandDefine(undef, "$newDevName ZM_Monitor $zmHost $monitorId");
+        $attr{$newDevName}{room} = "ZM_Monitor";
+        Log3 $name, 3, "Monitor ID: $monitorId, Function: $function, Enabled: $enabled, StreamReplayBuffer: $streamReplayBuffer";
+      }
+    }
+  }
+
+#  my $dispatchResult = Dispatch($hash, $msg, undef);
 
   return undef;  
 }
@@ -284,6 +306,8 @@ sub ZoneMinder_calcAuthHash {
 
   return undef;
 }
+
+
 
 sub ZoneMinder_Shutdown {
   ZoneMinder_Undef(@_);

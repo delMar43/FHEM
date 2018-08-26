@@ -83,18 +83,18 @@ sub ZM_Monitor_WriteStreamUrlToReading {
   readingsSingleUpdate($hash, $readingName, "$streamUrl", 0);
 }
 
-sub ZM_Monitor_API_ReadMonitorConfig {
-  my ($hash) = @_;
-  my $name = $hash->{NAME};
+#sub ZM_Monitor_API_ReadMonitorConfig {
+#  my ($hash) = @_;
+#  my $name = $hash->{NAME};
 
-  my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
+#  my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
   
-  my $arguments = {
-    method => "monitors",
-    parameter => "5"
-  };
-  IOWrite($hash, $arguments);
-}
+#  my $arguments = {
+#    method => "monitors",
+#    parameter => "5"
+#  };
+#  IOWrite($hash, $arguments);
+#}
 
 sub ZM_Monitor_DetailFn {
   my ( $FW_wname, $deviceName, $FW_room ) = @_;
