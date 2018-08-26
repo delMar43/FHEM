@@ -241,7 +241,7 @@ sub ZoneMinder_API_ReadMonitors_Callback {
         CommandDefine(undef, "$newDevName ZM_Monitor $zmHost $monitorId");
         $attr{$newDevName}{room} = "ZM_Monitor";
       }
-      ZoneMinder_UpdateMonitorAttributes($hash, $monitorData, $newDevName);
+      ZoneMinder_UpdateMonitorAttributes($hash, $monitorData, $monitorId);
     }
   }
 
@@ -251,15 +251,18 @@ sub ZoneMinder_API_ReadMonitors_Callback {
 }
 
 sub ZoneMinder_UpdateMonitorAttributes {
-  my ( $hash, $monitorData, $deviceName ) = @_;
+  my ( $hash, $monitorData, $monitorId ) = @_;
 
   my $function = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Function');
   my $enabled = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Enabled');
   my $streamReplayBuffer = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'StreamReplayBuffer');
-
-  $attr{$deviceName}{function} = $function;
-  $attr{$deviceName}{enabled} = $enabled;
-  $attr{$deviceName}{streamReplayBuffer} = $streamReplayBuffer;
+  
+  my $logDevHash = $modules{ZM_Monitor}{defptr}{$monitorId};
+  readingsBeginUpdate($logDevHash);
+  readingsBulkUpdate($logDevHash, 'Function', $function);
+  readingsBulkUpdate($logDevHash, 'Enabled', $enabled);
+  readingsBulkUpdate($logDevHash, 'StreamReplayBuffer', $streamReplayBuffer);
+  readingsEndUpdate($logDevHash, 1);
 }
 
 sub ZoneMinder_GetCookies {
