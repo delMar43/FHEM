@@ -245,8 +245,6 @@ sub ZoneMinder_API_ReadMonitors_Callback {
     }
   }
 
-#  my $dispatchResult = Dispatch($hash, $msg, undef);
-
   return undef;  
 }
 

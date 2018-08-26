@@ -121,17 +121,6 @@ sub ZM_Monitor_Read {
 sub ZM_Monitor_Get {
   my ( $hash, $name, $opt, @args ) = @_;
 
-#  my $name = $hash->{NAME};
-  Log3 $name, 3, "ZM_Monitor ($name) - name:$name opt:$opt";
-  if ($opt eq "config") {
-    my $arguments = {
-      method => "monitors",
-      parameter => $hash->{helper}{ZM_MONITOR_ID}
-    };
-    my $result = IOWrite($hash, $arguments);
-    ZM_Monitor_HandleMonitors();
-  }
-
 #  return "Unknown argument $opt, choose one of config";
   return undef;
 }
@@ -153,8 +142,6 @@ sub ZM_Monitor_Parse {
   my $msgType = $msg[0];
   if ($msgType eq "event") {
     return ZM_Monitor_HandleEvent($io_hash, $msg[1]);
-  } elsif ($msgType eq "monitors") {
-    return ZM_Monitor_HandleMonitors($io_hash, $msg[1]);
   } else {
     Log3 $io_hash, 0, "Unknown message type: $msgType";
   }
@@ -196,25 +183,6 @@ sub ZM_Monitor_HandleEvent {
     my $autocreate = "UNDEFINED ZM_Monitor_$io_hash->{NAME}_$address ZM_Monitor $zmHost $address";
     return $autocreate;
   }
-}
-
-sub ZM_Monitor_HandleMonitors {
-  my ( $io_hash, $message ) = @_;
-  Log3 "ZM_Monitor", 1, "HandleMonitors. message: $message";
-
-  my $arguments = {
-    method => "GetConfigValueByKey",
-    parameter => "Id",
-    data => $message
-  };
-  my $zmMonitorId = IOWrite($io_hash, $arguments);
-  my $hash = $modules{ZM_Monitor}{defptr}{$zmMonitorId};
-  
-  my $function;
-  my $enabled;
-  my $streamReplayBuffer;
-
-  return undef;
 }
 
 # Eval-Rückgabewert für erfolgreiches
