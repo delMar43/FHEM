@@ -20,7 +20,7 @@ sub ZoneMinder_Initialize {
   $hash->{FW_detailFn} = "ZoneMinder_DetailFn";
   $hash->{WriteFn}   = "ZoneMinder_Write";
 
-  $hash->{AttrList} = "streamUrl " . $readingFnAttributes;
+  $hash->{AttrList} = "pubStreamUrl " . $readingFnAttributes;
   $hash->{MatchList} = { "1:ZM_Monitor" => "^.*" };
 
   Log3 '', 3, "ZoneMinder - Initialize done ...";
@@ -157,13 +157,13 @@ sub ZoneMinder_API_ReadConfig_Callback {
   } elsif($data ne "") {
       my $zmPathZms = ZoneMinder_GetConfigValueByName($hash, $data, 'ZM_PATH_ZMS');
       if ($zmPathZms) {
+        $zmPathZms =~ s/\\//g;
         $hash->{helper}{ZM_PATH_ZMS} = $zmPathZms;
       }
 
       my $authHashSecret = ZoneMinder_GetConfigValueByName($hash, $data, 'ZM_AUTH_HASH_SECRET');
       if ($authHashSecret) {
         $hash->{helper}{ZM_AUTH_HASH_SECRET} = $authHashSecret;
-#        Log3 $name, 3, "url ".$param->{url}." returned $authHashSecret";
         ZoneMinder_calcAuthHash($hash);
       }
 

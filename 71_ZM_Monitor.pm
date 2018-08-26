@@ -49,29 +49,38 @@ sub ZM_Monitor_Define {
 
   AssignIoPort($hash);
 
-  ZM_Monitor_UpdateStreamUrl($hash);
+  ZM_Monitor_UpdateStreamUrls($hash);
 
   return undef;
 }
 
-sub ZM_Monitor_UpdateStreamUrl {
+sub ZM_Monitor_UpdateStreamUrls {
   my ( $hash ) = @_;
   my $ioDevName = $hash->{IODev}{NAME};
-  my $streamUrl = $attr{$ioDevName}{streamUrl};
 
   my $zmHost = $hash->{IODev}{helper}{ZM_HOST};
+  my $streamUrl = "http://$zmHost/";
+  
+  ZM_Monitor_WriteStreamUrlToReading($hash, $streamUrl, 'streamUrl');
 
-  $streamUrl = "http://$zmHost/" if (not $streamUrl);
-  $streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
+  my $pubStreamUrl = $attr{$ioDevName}{pubStreamUrl};
+  if ($pubStreamUrl) {
+    ZM_Monitor_WriteStreamUrlToReading($hash, $pubStreamUrl, 'pubStreamUrl');
+  }
+
+  return undef;
+}
+
+sub ZM_Monitor_WriteStreamUrlToReading {
+  my ( $hash, $streamUrl, $readingName) = @_;
 
   my $authHash = $hash->{IODev}{helper}{ZM_AUTH_KEY};
   my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
   my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
+  $streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
   $streamUrl = $streamUrl."$zmPathZms?mode=jpeg&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId&auth=$authHash";
-
-  readingsSingleUpdate($hash, 'streamUrl', "$streamUrl", 0);
-
-  return undef;
+  
+  readingsSingleUpdate($hash, $readingName, "$streamUrl", 0);
 }
 
 sub ZM_Monitor_API_ReadMonitorConfig {
@@ -91,8 +100,8 @@ sub ZM_Monitor_DetailFn {
   my ( $FW_wname, $deviceName, $FW_room ) = @_;
 
   my $hash = $defs{$deviceName};
-  ZM_Monitor_UpdateStreamUrl($hash);
-  my $streamUrl = ReadingsVal($deviceName, 'streamUrl', undef);
+  ZM_Monitor_UpdateStreamUrls($hash);
+  my $streamUrl = ReadingsVal($deviceName, 'pubStreamUrl', undef);
   if ($streamUrl) {
     return "<div><img src='$streamUrl'></img></div>";
   } else {
