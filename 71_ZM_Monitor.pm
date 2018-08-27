@@ -93,9 +93,9 @@ sub ZM_Monitor_DetailFn {
   }
 
   ZM_Monitor_UpdateStreamUrls($hash);
-  my $streamUrl = ReadingsVal($deviceName, 'streamUrl', undef);
+  my $streamUrl = ReadingsVal($deviceName, 'pubStreamUrl', undef);
   if (not $streamUrl) {
-    $streamUrl = ReadingsVal($deviceName, 'pubStreamUrl', undef);
+    $streamUrl = ReadingsVal($deviceName, 'streamUrl', undef);
   }
   if ($streamUrl) {
     return "<div><img src='$streamUrl'></img></div>";
