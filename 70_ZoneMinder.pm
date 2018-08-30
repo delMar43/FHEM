@@ -62,8 +62,8 @@ sub ZoneMinder_Define {
     }
 
     my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
-    my $zmUsername = $hash->{helper}{ZM_USERNAME};
-    my $zmPassword = $hash->{helper}{ZM_PASSWORD};
+    my $zmUsername = ZoneMinder_urlencode($hash->{helper}{ZM_USERNAME});
+    my $zmPassword = ZoneMinder_urlencode($hash->{helper}{ZM_PASSWORD});
     readingsSingleUpdate($hash, "ZMConsoleUrl", "$zmWebUrl/index.php?username=$zmUsername&password=$zmPassword&action=login&view=console", 0);
     ZoneMinder_API_Login($hash);
   }
@@ -76,13 +76,20 @@ sub ZoneMinder_Define {
   return undef;
 }
 
+sub ZoneMinder_urlencode {
+    my $s = shift;
+    $s =~ s/ /+/g;
+    $s =~ s/([^A-Za-z0-9\+-])/sprintf("%%%02X", ord($1))/seg;
+    return $s;
+}
+
 sub ZoneMinder_API_Login {
   my ($hash) = @_;
   my $name = $hash->{NAME};
 
   my $zmHost = $hash->{helper}{ZM_HOST};
-  my $username = $hash->{helper}{ZM_USERNAME};
-  my $password = $hash->{helper}{ZM_PASSWORD};
+  my $username = ZoneMinder_urlencode($hash->{helper}{ZM_USERNAME});
+  my $password = ZoneMinder_urlencode($hash->{helper}{ZM_PASSWORD});
 
   my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
   Log3 $name, 0, "ZoneMinder ($name) - zmWebUrl: $zmWebUrl";

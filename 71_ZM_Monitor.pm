@@ -60,8 +60,8 @@ sub ZM_Monitor_UpdateStreamUrls {
 
   my $zmHost = $hash->{IODev}{helper}{ZM_HOST};
   my $streamUrl = "http://$zmHost/";
-  my $zmUsername = $hash->{IODev}{helper}{ZM_USERNAME};
-  my $zmPassword = $hash->{IODev}{helper}{ZM_PASSWORD};
+  my $zmUsername = ZM_Monitor_Urlencode($hash->{IODev}{helper}{ZM_USERNAME});
+  my $zmPassword = ZM_Monitor_Urlencode($hash->{IODev}{helper}{ZM_PASSWORD});
   my $authPart = "&user=$zmUsername&pass=$zmPassword";
   ZM_Monitor_WriteStreamUrlToReading($hash, $streamUrl, 'streamUrl', $authPart);
 
@@ -73,6 +73,13 @@ sub ZM_Monitor_UpdateStreamUrls {
   }
 
   return undef;
+}
+
+sub ZM_Monitor_Urlencode {
+    my $s = shift;
+    $s =~ s/ /+/g;
+    $s =~ s/([^A-Za-z0-9\+-])/sprintf("%%%02X", ord($1))/seg;
+    return $s;
 }
 
 sub ZM_Monitor_WriteStreamUrlToReading {
