@@ -60,25 +60,28 @@ sub ZM_Monitor_UpdateStreamUrls {
 
   my $zmHost = $hash->{IODev}{helper}{ZM_HOST};
   my $streamUrl = "http://$zmHost/";
-  
-  ZM_Monitor_WriteStreamUrlToReading($hash, $streamUrl, 'streamUrl');
+  my $zmUsername = $hash->{IODev}{helper}{ZM_USERNAME};
+  my $zmPassword = $hash->{IODev}{helper}{ZM_PASSWORD};
+  my $authPart = "&user=$zmUsername&pass=$zmPassword";
+  ZM_Monitor_WriteStreamUrlToReading($hash, $streamUrl, 'streamUrl', $authPart);
 
   my $pubStreamUrl = $attr{$ioDevName}{pubStreamUrl};
   if ($pubStreamUrl) {
-    ZM_Monitor_WriteStreamUrlToReading($hash, $pubStreamUrl, 'pubStreamUrl');
+    my $authHash = $hash->{IODev}{helper}{ZM_AUTH_KEY};
+    $authPart = "&auth=$authHash";
+    ZM_Monitor_WriteStreamUrlToReading($hash, $pubStreamUrl, 'pubStreamUrl', $authPart);
   }
 
   return undef;
 }
 
 sub ZM_Monitor_WriteStreamUrlToReading {
-  my ( $hash, $streamUrl, $readingName) = @_;
+  my ( $hash, $streamUrl, $readingName, $authPart ) = @_;
 
-  my $authHash = $hash->{IODev}{helper}{ZM_AUTH_KEY};
   my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
   my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
   $streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
-  $streamUrl = $streamUrl."$zmPathZms?mode=jpeg&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId&auth=$authHash";
+  $streamUrl = $streamUrl."$zmPathZms?mode=jpeg&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId".$authPart;
   
   readingsSingleUpdate($hash, $readingName, "$streamUrl", 0);
 }
