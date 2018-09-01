@@ -72,6 +72,8 @@ sub ZM_Monitor_UpdateStreamUrls {
     ZM_Monitor_WriteStreamUrlToReading($hash, $pubStreamUrl, 'pubStreamUrl', $authPart);
   }
 
+  InternalTimer(gettimeofday() + 3600, "ZM_Monitor_UpdateStreamUrls", $hash);
+
   return undef;
 }
 
@@ -90,7 +92,7 @@ sub ZM_Monitor_WriteStreamUrlToReading {
   $streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
   $streamUrl = $streamUrl."$zmPathZms?mode=jpeg&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId".$authPart;
   
-  readingsSingleUpdate($hash, $readingName, "$streamUrl", 0);
+  readingsSingleUpdate($hash, $readingName, "$streamUrl", 1);
 }
 
 sub ZM_Monitor_DetailFn {
