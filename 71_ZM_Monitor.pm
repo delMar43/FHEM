@@ -2,6 +2,8 @@ package main;
 use strict;
 use warnings;
 
+my @ZM_Functions = qw( None Monitor Modect Record Mocord Nodect );
+
 sub ZM_Monitor_Initialize {
   my ($hash) = @_;
 
@@ -13,8 +15,10 @@ sub ZM_Monitor_Initialize {
   $hash->{FW_detailFn} = "ZM_Monitor_DetailFn";
   $hash->{ParseFn}     = "ZM_Monitor_Parse";
 
-  $hash->{AttrList} = "function enabled streamReplayBuffer".$readingFnAttributes;
+  $hash->{AttrList} = "function enabled streamReplayBuffer ".$readingFnAttributes;
   $hash->{Match} = "^.*";
+
+  
 
 #  Log3 '', 3, "ZM_Monitor - Initialize done ...";
 
@@ -138,15 +142,40 @@ sub ZM_Monitor_Get {
 }
 
 sub ZM_Monitor_Set {
-  my ( $hash, $param ) = @_;
+  my ( $hash, $name, $cmd, @args ) = @_;
 
-  my $name = $hash->{NAME};
-#  Log3 $name, 3, "ZM_Monitor ($name) - Set done ...";
+  if ( "Function" eq $cmd ) {
+    my $arg = $args[0];
+    if (grep { $_ eq $arg } @ZM_Functions) {
+#      Log3 $name, 0, "Function parameter: $arg";
+      my $arguments = {
+        method => 'changeMonitorFunction',
+        zmMonitorId => $hash->{helper}{ZM_MONITOR_ID},
+        zmFunction => $arg
+      };
+      my $result = IOWrite($hash, $arguments);
+      return $result;
+    }
+    return "Unknown value $args[0] for $cmd, choose one of ".join(' ', @ZM_Functions);
+  } elsif ("Enabled" eq $cmd ) {
+    my $arg = $args[0];
+    if ($arg eq '1' || $arg eq '0') {
+      my $arguments = {
+        method => 'changeMonitorEnabled',
+        zmMonitorId => $hash->{helper}{ZM_MONITOR_ID},
+        zmEnabled => $arg
+      };
+      my $result = IOWrite($hash, $arguments);
+      return $result;
+    }
+    return "Unknown value $args[0] for $cmd, choose one of 0 1";
+  }
 
-#  return "Unknown argument $opt, chose one of Function Enabled";
-  return undef;
+#  return "Unknown argument $cmd, chose one of Function:None,Monitor,Modect,Record,Mocord,Nodect Enabled:0,1";
+  return 'Function:'.join(',', @ZM_Functions).' Enabled:0,1';
 }
 
+# incoming messages from physical device module (70_ZoneMinder in this case).
 sub ZM_Monitor_Parse {
   my ( $io_hash, $message) = @_;
 
