@@ -65,7 +65,7 @@ sub ZoneMinder_Define {
     my $zmUsername = ZoneMinder_urlencode($hash->{helper}{ZM_USERNAME});
     my $zmPassword = ZoneMinder_urlencode($hash->{helper}{ZM_PASSWORD});
     readingsSingleUpdate($hash, "ZMConsoleUrl", "$zmWebUrl/index.php?username=$zmUsername&password=$zmPassword&action=login&view=console", 0);
-    ZoneMinder_API_Login($hash);
+    ZoneMinder_API_Login($hash, 'old');
   }
 
 #  Log3 $name, 3, "ZoneMinder ($name) - Define done ... module=$module, zmHost=$zmHost";
@@ -84,7 +84,7 @@ sub ZoneMinder_urlencode {
 }
 
 sub ZoneMinder_API_Login {
-  my ($hash) = @_;
+  my ($hash, $loginMethod) = @_;
   my $name = $hash->{NAME};
 
   my $zmHost = $hash->{helper}{ZM_HOST};
@@ -92,9 +92,17 @@ sub ZoneMinder_API_Login {
   my $password = ZoneMinder_urlencode($hash->{helper}{ZM_PASSWORD});
 
   my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
+  my $loginUrl = '';
+  if ($loginMethod eq 'new') {
+    $loginUrl = "$zmWebUrl/api/login.json?user=$username&pass=$password";
+  } else {
+    $loginUrl = "$zmWebUrl/index.php?username=$username&password=$password&action=login&view=console";
+  }
+  $hash->{helper}{ZM_LOGIN_METHOD} = $loginMethod;
+
   Log3 $name, 0, "ZoneMinder ($name) - zmWebUrl: $zmWebUrl";
   my $apiParam = {
-    url => "$zmWebUrl/index.php?username=$username&password=$password&action=login&view=console",
+    url => $loginUrl,
     method => "POST",
     callback => \&ZoneMinder_API_Login_Callback,
     hash => $hash
@@ -117,8 +125,10 @@ sub ZoneMinder_API_Login_Callback {
     Log3 $name, 0, "error while requesting ".$param->{url}." - $err";
     $hash->{APILoginError} = $err;
   } elsif($data ne "") {
+    my $loginMethod = $hash->{helper}{ZM_LOGIN_METHOD};
     if ($data =~ m/Invalid username or password/) {
       $hash->{APILoginError} = "Invalid username or password.";
+      ZoneMinder_API_Login( $hash, 'new' ) unless ($loginMethod eq 'new');
     } else {
       Log3 $name, 5, "url ".$param->{url}." returned $param->{httpheader}";
       delete($defs{$name}{APILoginError});
@@ -126,6 +136,8 @@ sub ZoneMinder_API_Login_Callback {
       ZoneMinder_GetCookies($hash, $param->{httpheader});
       ZoneMinder_API_ReadConfig($hash);
       ZoneMinder_API_ReadMonitors($hash);
+
+      InternalTimer(gettimeofday() + 3600, "ZoneMinder_API_Login", $hash, $loginMethod);
     }
   }
   
