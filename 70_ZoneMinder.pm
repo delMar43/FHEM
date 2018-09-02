@@ -159,7 +159,7 @@ sub ZoneMinder_API_ReadConfig {
   };
 
   if ($hash->{HTTPCookies}) {
-    Log3 $name, 5, "$name.ZoneMinder_API_ReadConfig: Adding Cookies: " . $hash->{HTTPCookies};
+#    Log3 $name, 5, "$name.ZoneMinder_API_ReadConfig: Adding Cookies: " . $hash->{HTTPCookies};
     $apiParam->{header} .= "\r\n" if ($apiParam->{header});
     $apiParam->{header} .= "Cookie: " . $hash->{HTTPCookies};
   }
@@ -235,7 +235,7 @@ sub ZoneMinder_API_ReadMonitors {
   };
 
   if ($hash->{HTTPCookies}) {
-    Log3 $name, 5, "$name.ZoneMinder_API_ReadMonitors: Adding Cookies: " . $hash->{HTTPCookies};
+#    Log3 $name, 5, "$name.ZoneMinder_API_ReadMonitors: Adding Cookies: " . $hash->{HTTPCookies};
     $apiParam->{header} .= "\r\n" if ($apiParam->{header});
     $apiParam->{header} .= "Cookie: " . $hash->{HTTPCookies};
   }
@@ -305,14 +305,14 @@ sub ZoneMinder_Write {
 
     my $zmMonitorId = $arguments->{zmMonitorId};
     my $zmFunction = $arguments->{zmFunction};
-    Log3 $hash->{NAME}, 1, "method: $method, monitorId:$zmMonitorId, Function:$zmFunction";
+    Log3 $hash->{NAME}, 4, "method: $method, monitorId:$zmMonitorId, Function:$zmFunction";
     return ZoneMinder_API_ChangeMonitorState($hash, $zmMonitorId, $zmFunction, undef);
 
   } elsif ($method eq 'changeMonitorEnabled') {
 
     my $zmMonitorId = $arguments->{zmMonitorId};
     my $zmEnabled = $arguments->{zmEnabled};
-    Log3 $hash->{NAME}, 1, "method: $method, monitorId:$zmMonitorId, Enabled:$zmEnabled";
+    Log3 $hash->{NAME}, 4, "method: $method, monitorId:$zmMonitorId, Enabled:$zmEnabled";
     return ZoneMinder_API_ChangeMonitorState($hash, $zmMonitorId, undef, $zmEnabled);
 
   }
@@ -331,18 +331,21 @@ sub ZoneMinder_API_ChangeMonitorState {
     url => "$zmWebUrl/api/monitors/$zmMonitorId.json",
     method => "POST",
     callback => \&ZoneMinder_API_ChangeMonitorState_Callback,
-    hash => $hash
+    hash => $hash,
+    zmMonitorId => $zmMonitorId,
+    zmFunction => $zmFunction,
+    zmEnabled => $zmEnabled
   };
 
-  Log3 $name, 0, "ZoneMinder ($name) - apiParam: $apiParam";
   if ( $zmFunction ) {
     $apiParam->{data} = "Monitor[Function]=$zmFunction";
-  } elsif ( $zmEnabled ) {
+  } elsif ( $zmEnabled || $zmEnabled eq '0' ) {
     $apiParam->{data} = "Monitor[Enabled]=$zmEnabled";
   }
+  Log3 $name, 5, "ZoneMinder ($name) - url: ".$apiParam->{url}." data: ".$apiParam->{data};
 
   if ($hash->{HTTPCookies}) {
-    Log3 $name, 5, "$name.ZoneMinder_API_ReadConfig: Adding Cookies: " . $hash->{HTTPCookies};
+#    Log3 $name, 5, "$name.ZoneMinder_API_ReadConfig: Adding Cookies: " . $hash->{HTTPCookies};
     $apiParam->{header} .= "\r\n" if ($apiParam->{header});
     $apiParam->{header} .= "Cookie: " . $hash->{HTTPCookies};
   }
@@ -356,9 +359,25 @@ sub ZoneMinder_API_ChangeMonitorState {
 
 sub ZoneMinder_API_ChangeMonitorState_Callback {
   my ($param, $err, $data) = @_;  
+  my $hash = $param->{hash};
+  my $name = $hash->{NAME};
+  if ($data) {
+    my $monitorId = $param->{zmMonitorId};
+    my $logDevHash = $modules{ZM_Monitor}{defptr}{$monitorId};
+    my $function = $param->{zmFunction};
+    my $enabled = $param->{zmEnabled};
+    Log3 $name, 4, "ZM_Monitor ($name) - ChangeMonitorState callback data: $data, enabled: $enabled";
 
-  Log3 "ZM_Monitor", 0, "ChangeMonitorState callback data: $data, err: $err";
+    if ($function) {
+      readingsSingleUpdate($logDevHash, 'Function', $function, 1);
+    } elsif ($enabled || $enabled eq '0') {
+      readingsSingleUpdate($logDevHash, 'Enabled', $enabled, 1);
+    }
 
+  } else {
+    Log3 $name, 2, "ZM_Monitor ($name) - ChangeMonitorState callback err: $err";
+  }
+  
   return undef;
 }
 
