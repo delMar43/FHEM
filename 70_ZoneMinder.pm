@@ -186,7 +186,6 @@ sub ZoneMinder_API_ReadConfig_Callback {
         $hash->{helper}{ZM_AUTH_HASH_SECRET} = $authHashSecret;
         ZoneMinder_calcAuthHash($hash);
       }
-
   }
 
   return undef;
@@ -263,6 +262,8 @@ sub ZoneMinder_API_ReadMonitors_Callback {
       ZoneMinder_UpdateMonitorAttributes($hash, $monitorData, $monitorId);
     }
   }
+
+  InternalTimer(gettimeofday() + 60, "ZoneMinder_API_ReadMonitors", $hash);
 
   return undef;  
 }
