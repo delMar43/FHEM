@@ -72,7 +72,9 @@ sub ZM_Monitor_UpdateStreamUrls {
   my $pubStreamUrl = $attr{$ioDevName}{pubStreamUrl};
   if ($pubStreamUrl) {
     my $authHash = $hash->{IODev}{helper}{ZM_AUTH_KEY};
-    $authPart = "&auth=$authHash";
+    if ($authHash) { #if ZM_AUTH_KEY is defeined, use the auth-hash. otherwise, use the previously defined username/pwd
+      $authPart = "&auth=$authHash";
+    }
     ZM_Monitor_WriteStreamUrlToReading($hash, $pubStreamUrl, 'pubStreamUrl', $authPart);
   }
 
@@ -92,6 +94,11 @@ sub ZM_Monitor_WriteStreamUrlToReading {
   my ( $hash, $streamUrl, $readingName, $authPart ) = @_;
 
   my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
+  if (not $zmPathZms) {
+#    my $name = $hash->{NAME};
+#    Log3 $name, 1, "Unable to write streamUrl Reading, because ZM_PATH_ZMS setting was not found in ZoneMinder";
+    return undef;
+  }
   my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
   $streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
   $streamUrl = $streamUrl."$zmPathZms?mode=jpeg&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId".$authPart;

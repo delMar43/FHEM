@@ -248,7 +248,7 @@ sub ZoneMinder_API_ReadMonitors_Callback {
   my $name = $hash->{NAME};
   my $zmHost = $hash->{helper}{ZM_HOST};
 
-  my @monitors = split(/{"Monitor"\:{/, $data);
+  my @monitors = split(/\{"Monitor"\:\{/, $data);
 
   foreach my $monitorData (@monitors) {
     my $monitorId = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Id');
@@ -451,7 +451,6 @@ sub ZoneMinder_DetailFn {
 
 sub ZoneMinder_Get {
   my ( $hash, $name, $opt, $args ) = @_;
-  my $name = $hash->{NAME};
 
   if ("updateMonitors" eq $opt) {
     ZoneMinder_API_ReadMonitors($hash);
