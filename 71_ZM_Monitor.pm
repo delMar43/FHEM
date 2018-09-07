@@ -202,13 +202,13 @@ sub ZM_Monitor_HandleEvent {
 
   my @msgTokens = split(/\|/, $message);
   my $address = $msgTokens[0];
-#  Log3 $io_hash, 3, "ZM_Monitor - ParseFn Address = $address";
   my $alertState = $msgTokens[1];
   my $eventTs = $msgTokens[2];
   my $eventId = $msgTokens[3];
 
   # wenn bereits eine Gerätedefinition existiert (via Definition Pointer aus Define-Funktion)
   if(my $hash = $modules{ZM_Monitor}{defptr}{$address}) {
+    my $eventStreamUrl = ZM_Monitor_createEventStreamUrl($hash, $eventId);
     my $state;
     if ($alertState eq "on") {
       $state = "alert";
@@ -220,6 +220,7 @@ sub ZM_Monitor_HandleEvent {
     readingsBulkUpdate($hash, "alert", $alertState, 1);
     readingsBulkUpdate($hash, "lastEventTimestamp", $eventTs);
     readingsBulkUpdate($hash, "lastEventId", $eventId);
+    readingsBulkUpdate($hash, "lastEventStreamUrl", $eventStreamUrl);
     readingsEndUpdate($hash, 1);
 
     # Rückgabe des Gerätenamens, für welches die Nachricht bestimmt ist.
@@ -231,6 +232,44 @@ sub ZM_Monitor_HandleEvent {
     my $autocreate = "UNDEFINED ZM_Monitor_$io_hash->{NAME}_$address ZM_Monitor $zmHost $address";
     return $autocreate;
   }
+}
+
+#for now, this is nearly a duplicate of writing the streamUrl reading.
+#will need some love to make better use of existing code.
+sub ZM_Monitor_createEventStreamUrl {
+  my ( $hash, $eventId ) = @_;
+  my $ioDevName = $hash->{IODev}{NAME};
+
+  my $zmHost = $hash->{IODev}{helper}{ZM_HOST};
+  my $streamUrl = "http://$zmHost/";
+  my $zmUsername = ZM_Monitor_Urlencode($hash->{IODev}{helper}{ZM_USERNAME});
+  my $zmPassword = ZM_Monitor_Urlencode($hash->{IODev}{helper}{ZM_PASSWORD});
+  my $authPart = "&user=$zmUsername&pass=$zmPassword";
+  ZM_Monitor_WriteEventStreamUrlToReading($hash, $streamUrl, 'eventStreamUrl', $authPart, $eventId);
+
+  my $pubStreamUrl = $attr{$ioDevName}{pubStreamUrl};
+  if ($pubStreamUrl) {
+    my $authHash = $hash->{IODev}{helper}{ZM_AUTH_KEY};
+    if ($authHash) { #if ZM_AUTH_KEY is defeined, use the auth-hash. otherwise, use the previously defined username/pwd
+      $authPart = "&auth=$authHash";
+    }
+    ZM_Monitor_WriteEventStreamUrlToReading($hash, $pubStreamUrl, 'pubEventStreamUrl', $authPart, $eventId);
+  }
+}
+
+sub ZM_Monitor_WriteEventStreamUrlToReading {
+  my ( $hash, $streamUrl, $readingName, $authPart, $eventId ) = @_;
+
+  my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
+  if (not $zmPathZms) {
+#    my $name = $hash->{NAME};
+#    Log3 $name, 1, "Unable to write streamUrl Reading, because ZM_PATH_ZMS setting was not found in ZoneMinder";
+    return undef;
+  }
+  $streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
+  $streamUrl = $streamUrl."$zmPathZms?source=event&mode=jpeg&event=$eventId&frame=1&scale=100&rate=100&maxfps=30&replay=gapless".$authPart;
+
+  readingsSingleUpdate($hash, $readingName, "$streamUrl", 1);
 }
 
 # Eval-Rückgabewert für erfolgreiches

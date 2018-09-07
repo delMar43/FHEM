@@ -368,7 +368,7 @@ sub ZoneMinder_API_ChangeMonitorState_Callback {
     my $logDevHash = $modules{ZM_Monitor}{defptr}{$monitorId};
     my $function = $param->{zmFunction};
     my $enabled = $param->{zmEnabled};
-    Log3 $name, 4, "ZM_Monitor ($name) - ChangeMonitorState callback data: $data, enabled: $enabled";
+#    Log3 $name, 4, "ZM_Monitor ($name) - ChangeMonitorState callback data: $data, enabled: $enabled";
 
     if ($function) {
       readingsSingleUpdate($logDevHash, 'Function', $function, 1);
@@ -377,7 +377,7 @@ sub ZoneMinder_API_ChangeMonitorState_Callback {
     }
 
   } else {
-    Log3 $name, 2, "ZM_Monitor ($name) - ChangeMonitorState callback err: $err";
+    Log3 $name, 2, "ZoneMinder ($name) - ChangeMonitorState callback err: $err";
   }
   
   return undef;
