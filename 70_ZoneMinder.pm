@@ -19,6 +19,7 @@ sub ZoneMinder_Initialize {
   $hash->{ShutdownFn}= "ZoneMinder_Shutdown";
   $hash->{FW_detailFn} = "ZoneMinder_DetailFn";
   $hash->{WriteFn}   = "ZoneMinder_Write";
+  $hash->{ReadyFn}   = "ZoneMinder_Ready";
 
   $hash->{AttrList} = "pubStreamUrl " . $readingFnAttributes;
   $hash->{MatchList} = { "1:ZM_Monitor" => "^.*" };
@@ -467,6 +468,19 @@ sub ZoneMinder_Set {
   my $name = $hash->{NAME};
 #  Log3 $name, 3, "ZoneMinder ($name) - Set done ...";
   return undef;
+}
+
+sub ZoneMinder_Ready {
+  my ( $hash ) = @_;
+
+  return DevIo_OpenDev($hash, 1, undef ) if ( $hash->{STATE} eq "disconnected" );
+
+  # This is relevant for Windows/USB only
+  if(defined($hash->{USBDev})) {
+    my $po = $hash->{USBDev};
+    my ( $BlockingFlags, $InBytes, $OutBytes, $ErrorFlags ) = $po->status;
+    return ( $InBytes > 0 );
+  }
 }
 
 # Eval-Rückgabewert für erfolgreiches
