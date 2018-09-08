@@ -62,11 +62,18 @@ sub ZM_Monitor_UpdateStreamUrls {
   my ( $hash ) = @_;
   my $ioDevName = $hash->{IODev}{NAME};
 
+  my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
+  if (not $zmPathZms) {
+    return undef;
+  }
+
   my $zmHost = $hash->{IODev}{helper}{ZM_HOST};
   my $streamUrl = "http://$zmHost/";
   my $zmUsername = ZM_Monitor_Urlencode($hash->{IODev}{helper}{ZM_USERNAME});
   my $zmPassword = ZM_Monitor_Urlencode($hash->{IODev}{helper}{ZM_PASSWORD});
   my $authPart = "&user=$zmUsername&pass=$zmPassword";
+
+  readingsBeginUpdate($hash);
   ZM_Monitor_WriteStreamUrlToReading($hash, $streamUrl, 'streamUrl', $authPart);
 
   my $pubStreamUrl = $attr{$ioDevName}{pubStreamUrl};
@@ -77,6 +84,7 @@ sub ZM_Monitor_UpdateStreamUrls {
     }
     ZM_Monitor_WriteStreamUrlToReading($hash, $pubStreamUrl, 'pubStreamUrl', $authPart);
   }
+  readingsEndUpdate($hash, 1);
 
   InternalTimer(gettimeofday() + 3600, "ZM_Monitor_UpdateStreamUrls", $hash);
 
@@ -94,16 +102,16 @@ sub ZM_Monitor_WriteStreamUrlToReading {
   my ( $hash, $streamUrl, $readingName, $authPart ) = @_;
 
   my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
-  if (not $zmPathZms) {
-#    my $name = $hash->{NAME};
-#    Log3 $name, 1, "Unable to write streamUrl Reading, because ZM_PATH_ZMS setting was not found in ZoneMinder";
-    return undef;
-  }
   my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
   $streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
-  $streamUrl = $streamUrl."$zmPathZms?mode=jpeg&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId".$authPart;
+
+  my $imageUrl = $streamUrl."$zmPathZms?mode=single&scale=100&monitor=$zmMonitorId".$authPart;
+  my $imageReadingName = $readingName;
+  $imageReadingName =~ s/Stream/Image/g;
+  readingsBulkUpdate($hash, $imageReadingName, $imageUrl, 1);
   
-  readingsSingleUpdate($hash, $readingName, "$streamUrl", 1);
+  $streamUrl = $streamUrl."$zmPathZms?mode=jpeg&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId".$authPart;
+  readingsBulkUpdate($hash, $readingName, "$streamUrl", 1);
 }
 
 sub ZM_Monitor_DetailFn {
@@ -208,19 +216,19 @@ sub ZM_Monitor_HandleEvent {
 
   # wenn bereits eine Gerätedefinition existiert (via Definition Pointer aus Define-Funktion)
   if(my $hash = $modules{ZM_Monitor}{defptr}{$address}) {
-    my $eventStreamUrl = ZM_Monitor_createEventStreamUrl($hash, $eventId);
+
+    readingsBeginUpdate($hash);
+    ZM_Monitor_createEventStreamUrl($hash, $eventId);
     my $state;
     if ($alertState eq "on") {
       $state = "alert";
     } elsif ($alertState eq "off") {
       $state = "idle";
     }
-    readingsBeginUpdate($hash);
     readingsBulkUpdate($hash, "state", $state, 1);
     readingsBulkUpdate($hash, "alert", $alertState, 1);
     readingsBulkUpdate($hash, "lastEventTimestamp", $eventTs);
     readingsBulkUpdate($hash, "lastEventId", $eventId);
-    readingsBulkUpdate($hash, "lastEventStreamUrl", $eventStreamUrl);
     readingsEndUpdate($hash, 1);
 
     # Rückgabe des Gerätenamens, für welches die Nachricht bestimmt ist.
@@ -239,6 +247,11 @@ sub ZM_Monitor_HandleEvent {
 sub ZM_Monitor_createEventStreamUrl {
   my ( $hash, $eventId ) = @_;
   my $ioDevName = $hash->{IODev}{NAME};
+
+  my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
+  if (not $zmPathZms) {
+    return undef;
+  }
 
   my $zmHost = $hash->{IODev}{helper}{ZM_HOST};
   my $streamUrl = "http://$zmHost/";
@@ -261,15 +274,17 @@ sub ZM_Monitor_WriteEventStreamUrlToReading {
   my ( $hash, $streamUrl, $readingName, $authPart, $eventId ) = @_;
 
   my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
-  if (not $zmPathZms) {
-#    my $name = $hash->{NAME};
-#    Log3 $name, 1, "Unable to write streamUrl Reading, because ZM_PATH_ZMS setting was not found in ZoneMinder";
-    return undef;
-  }
   $streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
-  $streamUrl = $streamUrl."$zmPathZms?source=event&mode=jpeg&event=$eventId&frame=1&scale=100&rate=100&maxfps=30&replay=gapless".$authPart;
 
-  readingsSingleUpdate($hash, $readingName, "$streamUrl", 1);
+  my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
+  my $imageUrl = $streamUrl."$zmPathZms?mode=single&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId".$authPart;
+  my $imageReadingName = $readingName;
+  $imageReadingName =~ s/Stream/Image/g;
+  readingsBulkUpdate($hash, $imageReadingName, $imageUrl, 1);
+
+  $streamUrl = $streamUrl."$zmPathZms?source=event&mode=jpeg&event=$eventId&frame=1&scale=100&rate=100&maxfps=30&replay=gapless".$authPart;
+  readingsBulkUpdate($hash, $readingName, $streamUrl, 1);
+
 }
 
 # Eval-Rückgabewert für erfolgreiches
