@@ -1,6 +1,7 @@
 package main;
 use strict;
 use warnings;
+use FileHandle;
 
 my @ZM_Functions = qw( None Monitor Modect Record Mocord Nodect );
 
@@ -31,11 +32,10 @@ sub ZM_Monitor_Define {
  
   my $name   = $a[0];
   my $module = $a[1];
-  my $zmHost = $a[2];
-  my $zmMonitorId = $a[3];
+  my $zmMonitorId = $a[2];
   
-  if(@a < 4 || @a > 4) {
-     my $msg = "ZM_Monitor ($name) - Wrong syntax: define <name> ZM_Monitor <ZM_URL> <ZM_MONITOR_ID>";
+  if(@a < 3 || @a > 3) {
+     my $msg = "ZM_Monitor ($name) - Wrong syntax: define <name> ZM_Monitor <ZM_MONITOR_ID>";
      Log3 $name, 2, $msg;
      return $msg;
   }
@@ -43,15 +43,16 @@ sub ZM_Monitor_Define {
   $hash->{NAME} = $name;
   readingsSingleUpdate($hash, "state", "idle", 1);
 
+  AssignIoPort($hash);
+  
+  my $ioDevName = $hash->{IODev}{NAME};
+  my $logDevAddress = $ioDevName.'_'.$zmMonitorId;
   # Adresse rückwärts dem Hash zuordnen (für ParseFn)
-  $modules{ZM_Monitor}{defptr}{$zmMonitorId} = $hash;
+  $modules{ZM_Monitor}{defptr}{$logDevAddress} = $hash;
   
 #  Log3 $name, 3, "ZM_Monitor ($name) - Define done ... module=$module, zmHost=$zmHost, zmMonitorId=$zmMonitorId";
 
-  $hash->{helper}{ZM_HOST} = $zmHost;
   $hash->{helper}{ZM_MONITOR_ID} = $zmMonitorId;
-
-  AssignIoPort($hash);
 
   ZM_Monitor_UpdateStreamUrls($hash);
 
@@ -208,20 +209,25 @@ sub ZM_Monitor_Parse {
 sub ZM_Monitor_HandleEvent {
   my ( $io_hash, $message ) = @_;
 
+  my $ioName = $io_hash->{NAME};
   my @msgTokens = split(/\|/, $message);
-  my $address = $msgTokens[0];
+  my $zmMonitorId = $msgTokens[0];
   my $alertState = $msgTokens[1];
   my $eventTs = $msgTokens[2];
   my $eventId = $msgTokens[3];
 
+  my $logDevAddress = $ioName.'_'.$zmMonitorId;
+  Log3 $io_hash, 5, "Handling event for logical device $logDevAddress";
   # wenn bereits eine Gerätedefinition existiert (via Definition Pointer aus Define-Funktion)
-  if(my $hash = $modules{ZM_Monitor}{defptr}{$address}) {
+  if(my $hash = $modules{ZM_Monitor}{defptr}{$logDevAddress}) {
+    Log3 $hash, 5, "Logical device $logDevAddress found. Writing readings";
 
     readingsBeginUpdate($hash);
     ZM_Monitor_createEventStreamUrl($hash, $eventId);
     my $state;
     if ($alertState eq "on") {
       $state = "alert";
+#      ZM_Monitor_downloadEventImage($hash, $eventId);
     } elsif ($alertState eq "off") {
       $state = "idle";
     }
@@ -231,14 +237,66 @@ sub ZM_Monitor_HandleEvent {
     readingsBulkUpdate($hash, "lastEventId", $eventId);
     readingsEndUpdate($hash, 1);
 
+    Log3 $hash, 5, "Writing readings done. Now returning log dev name: $hash->{NAME}";
     # Rückgabe des Gerätenamens, für welches die Nachricht bestimmt ist.
     return $hash->{NAME};
   } else {
-    # Keine Gerätedefinition verfügbar
-    # Daher Vorschlag define-Befehl: <NAME> <MODULNAME> <ADDRESSE>
-    my $zmHost = $io_hash->{DEF};
-    my $autocreate = "UNDEFINED ZM_Monitor_$io_hash->{NAME}_$address ZM_Monitor $zmHost $address";
+    # Keine Gerätedefinition verfügbar. Daher Vorschlag define-Befehl: <NAME> <MODULNAME> <ADDRESSE>
+    my $autocreate = "UNDEFINED ZM_Monitor_$logDevAddress ZM_Monitor $zmMonitorId";
+    Log3 $io_hash, 5, "logical device with address $logDevAddress not found. returning autocreate: $autocreate";
     return $autocreate;
+  }
+}
+
+sub ZM_Monitor_downloadEventImage {
+  my ( $hash, $eventId ) = @_;
+  my $name = $hash->{NAME};
+  
+  my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
+  if (not $zmPathZms) {
+    return undef;
+  }
+  my $zmHost = $hash->{IODev}{helper}{ZM_HOST};
+  my $zmUsername = ZM_Monitor_Urlencode($hash->{IODev}{helper}{ZM_USERNAME});
+  my $zmPassword = ZM_Monitor_Urlencode($hash->{IODev}{helper}{ZM_PASSWORD});
+  my $authPart = "&user=$zmUsername&pass=$zmPassword";
+  my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
+  my $streamUrl = "http://$zmHost/";
+  my $imageUrl = $streamUrl."$zmPathZms?mode=single&scale=100&monitor=$zmMonitorId".$authPart;
+
+  Log3 $name, 0, "ZM_Monitor ($name) - would download event image from $imageUrl";
+  
+  my $param = {
+    url => $imageUrl,
+    method => "GET",
+    callback => \&ZM_Monitor_downloadEventImage_Callback,
+    hash => $hash,
+    eventId => $eventId
+  };
+  HttpUtils_NonblockingGet($param);
+  
+  return undef;
+}
+
+sub ZM_Monitor_downloadEventImage_Callback {
+  my ($param, $err, $data) = @_;
+  my $hash = $param->{hash};
+  my $eventId = $param->{eventId};
+  my $name = $hash->{NAME};
+
+  if($err ne "") {
+    Log3 $name, 3, "error while requesting ".$param->{url}." - $err";
+#    readingsSingleUpdate($hash, "fullResponse", "ERROR", 0);
+  } elsif($data ne "") {
+    #Log3 $name, 3, "url ".$param->{url}." returned data";
+    my $bin=pack("u", "$data");
+
+    my $OUT= new FileHandle;
+    open ($OUT, "/opt/fhem/unused/".$eventId.".jpg");
+    print $OUT $bin;
+    $OUT->close;
+    
+#    readingsSingleUpdate($hash, "fullResponse", $data, 0);
   }
 }
 
@@ -263,7 +321,7 @@ sub ZM_Monitor_createEventStreamUrl {
   my $pubStreamUrl = $attr{$ioDevName}{pubStreamUrl};
   if ($pubStreamUrl) {
     my $authHash = $hash->{IODev}{helper}{ZM_AUTH_KEY};
-    if ($authHash) { #if ZM_AUTH_KEY is defeined, use the auth-hash. otherwise, use the previously defined username/pwd
+    if ($authHash) { #if ZM_AUTH_KEY is defined, use the auth-hash. otherwise, use the previously defined username/pwd
       $authPart = "&auth=$authHash";
     }
     ZM_Monitor_WriteEventStreamUrlToReading($hash, $pubStreamUrl, 'pubEventStreamUrl', $authPart, $eventId);

@@ -131,7 +131,7 @@ sub ZoneMinder_API_Login_Callback {
       $hash->{APILoginError} = "Invalid username or password.";
       ZoneMinder_API_Login( $hash, 'new' ) unless ($loginMethod eq 'new');
     } else {
-      Log3 $name, 5, "url ".$param->{url}." returned $param->{httpheader}";
+      #Log3 $name, 5, "url ".$param->{url}." returned $param->{httpheader}";
       delete($defs{$name}{APILoginError});
       
       ZoneMinder_GetCookies($hash, $param->{httpheader});
@@ -257,10 +257,10 @@ sub ZoneMinder_API_ReadMonitors_Callback {
     if ( $monitorId =~ /^[0-9]+$/ ) {
       my $newDevName = "ZM_Monitor_".$name."_$monitorId";
       if(not defined($modules{ZM_Monitor}{defptr}{$monitorId})) {
-        CommandDefine(undef, "$newDevName ZM_Monitor $zmHost $monitorId");
+        CommandDefine(undef, "$newDevName ZM_Monitor $monitorId");
         $attr{$newDevName}{room} = "ZM_Monitor";
       }
-      ZoneMinder_UpdateMonitorAttributes($hash, $monitorData, $monitorId);
+      ZoneMinder_UpdateMonitorAttributes($hash, $monitorData, $name.'_'.$monitorId);
     }
   }
 
@@ -271,27 +271,32 @@ sub ZoneMinder_API_ReadMonitors_Callback {
 
 sub ZoneMinder_UpdateMonitorAttributes {
   my ( $hash, $monitorData, $monitorId ) = @_;
+  my $logDevHash = $modules{ZM_Monitor}{defptr}{$monitorId};
+  if (not $logDevHash) {
+    Log3 $hash, 3, "UpdateMonitorAttributes unable to find logical device with address $monitorId";
+    return undef;
+  }
+  Log3 $hash, 3, "UpdateMonitorAttributes for address $monitorId";
 
   my $function = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Function');
   my $enabled = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Enabled');
   my $streamReplayBuffer = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'StreamReplayBuffer');
   
-  my $logDevHash = $modules{ZM_Monitor}{defptr}{$monitorId};
   readingsBeginUpdate($logDevHash);
-  readingsBulkUpdate($logDevHash, 'Function', $function);
-  readingsBulkUpdate($logDevHash, 'Enabled', $enabled);
-  readingsBulkUpdate($logDevHash, 'StreamReplayBuffer', $streamReplayBuffer);
+  readingsBulkUpdateIfChanged($logDevHash, 'Function', $function);
+  readingsBulkUpdateIfChanged($logDevHash, 'Enabled', $enabled);
+  readingsBulkUpdateIfChanged($logDevHash, 'StreamReplayBuffer', $streamReplayBuffer);
   readingsEndUpdate($logDevHash, 1);
 }
 
 sub ZoneMinder_GetCookies {
     my ($hash, $header) = @_;
     my $name = $hash->{NAME};
-    Log3 $name, 5, "$name: looking for Cookies in $header";
+    #Log3 $name, 5, "$name: looking for Cookies in $header";
     foreach my $cookie ($header =~ m/set-cookie: ?(.*)/gi) {
-        Log3 $name, 5, "$name: Set-Cookie: $cookie";
+        #Log3 $name, 5, "$name: Set-Cookie: $cookie";
         $cookie =~ /([^,; ]+)=([^,; ]+)[;, ]*(.*)/;
-        Log3 $name, 4, "$name: Cookie: $1 Wert $2 Rest $3";
+        #Log3 $name, 4, "$name: Cookie: $1 Wert $2 Rest $3";
         $hash->{HTTPCookieHash}{$1}{Value} = $2;
         $hash->{HTTPCookieHash}{$1}{Options} = ($3 ? $3 : "");
     }
@@ -344,7 +349,7 @@ sub ZoneMinder_API_ChangeMonitorState {
   } elsif ( $zmEnabled || $zmEnabled eq '0' ) {
     $apiParam->{data} = "Monitor[Enabled]=$zmEnabled";
   }
-  Log3 $name, 5, "ZoneMinder ($name) - url: ".$apiParam->{url}." data: ".$apiParam->{data};
+  #Log3 $name, 5, "ZoneMinder ($name) - url: ".$apiParam->{url}." data: ".$apiParam->{data};
 
   if ($hash->{HTTPCookies}) {
 #    Log3 $name, 5, "$name.ZoneMinder_API_ReadConfig: Adding Cookies: " . $hash->{HTTPCookies};
