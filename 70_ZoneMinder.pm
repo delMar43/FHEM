@@ -264,7 +264,7 @@ sub ZoneMinder_API_ReadMonitors_Callback {
     }
   }
 
-  InternalTimer(gettimeofday() + 60, "ZoneMinder_API_ReadMonitors", $hash);
+#  InternalTimer(gettimeofday() + 60, "ZoneMinder_API_ReadMonitors", $hash);
 
   return undef;  
 }
