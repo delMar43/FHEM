@@ -255,12 +255,13 @@ sub ZoneMinder_API_ReadMonitors_Callback {
     my $monitorId = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Id');
 
     if ( $monitorId =~ /^[0-9]+$/ ) {
-      my $newDevName = "ZM_Monitor_".$name."_$monitorId";
-      if(not defined($modules{ZM_Monitor}{defptr}{$monitorId})) {
+      my $monitorAddress = $name.'_'.$monitorId;
+      my $newDevName = "ZM_Monitor_$monitorAddress";
+      if(not defined($modules{ZM_Monitor}{defptr}{$monitorAddress})) {
         CommandDefine(undef, "$newDevName ZM_Monitor $monitorId");
         $attr{$newDevName}{room} = "ZM_Monitor";
       }
-      ZoneMinder_UpdateMonitorAttributes($hash, $monitorData, $name.'_'.$monitorId);
+      ZoneMinder_UpdateMonitorAttributes($hash, $monitorData, $monitorAddress);
     }
   }
 
