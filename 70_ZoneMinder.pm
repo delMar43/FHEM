@@ -409,7 +409,6 @@ sub ZoneMinder_API_ChangeMonitorState {
   #Log3 $name, 5, "ZoneMinder ($name) - url: ".$apiParam->{url}." data: ".$apiParam->{data};
 
   if ($hash->{HTTPCookies}) {
-#    Log3 $name, 5, "$name.ZoneMinder_API_ReadConfig: Adding Cookies: " . $hash->{HTTPCookies};
     $apiParam->{header} .= "\r\n" if ($apiParam->{header});
     $apiParam->{header} .= "Cookie: " . $hash->{HTTPCookies};
   }
@@ -427,10 +426,10 @@ sub ZoneMinder_API_ChangeMonitorState_Callback {
   my $name = $hash->{NAME};
   if ($data) {
     my $monitorId = $param->{zmMonitorId};
-    my $logDevHash = $modules{ZM_Monitor}{defptr}{$monitorId};
+    my $logDevHash = $modules{ZM_Monitor}{defptr}{$name.'_'.$monitorId};
     my $function = $param->{zmFunction};
     my $enabled = $param->{zmEnabled};
-#    Log3 $name, 4, "ZM_Monitor ($name) - ChangeMonitorState callback data: $data, enabled: $enabled";
+    Log3 $name, 4, "ZM_Monitor ($name) - ChangeMonitorState callback data: $data, enabled: $enabled";
 
     if ($function) {
       readingsSingleUpdate($logDevHash, 'Function', $function, 1);
