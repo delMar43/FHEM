@@ -135,6 +135,7 @@ sub ZoneMinder_API_Login_Callback {
       delete($defs{$name}{APILoginError});
       
       ZoneMinder_GetCookies($hash, $param->{httpheader});
+      ZoneMinder_API_ReadHostInfo($hash);
       ZoneMinder_API_ReadConfig($hash);
       ZoneMinder_API_ReadMonitors($hash);
 
@@ -145,11 +146,59 @@ sub ZoneMinder_API_Login_Callback {
   return undef;
 }
 
+sub ZoneMinder_API_ReadHostInfo {
+  my ($hash) = @_;
+  my $name = $hash->{NAME};
+
+  my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
+
+  my $apiParam = {
+    url => "$zmWebUrl/api/host/getVersion.json",
+    method => "GET",
+    callback => \&ZoneMinder_API_ReadHostInfo_Callback,
+    hash => $hash
+  };
+
+  if ($hash->{HTTPCookies}) {
+    $apiParam->{header} .= "\r\n" if ($apiParam->{header});
+    $apiParam->{header} .= "Cookie: " . $hash->{HTTPCookies};
+  }
+
+  HttpUtils_NonblockingGet($apiParam);  
+}
+
+sub ZoneMinder_API_ReadHostInfo_Callback {
+  my ($param, $err, $data) = @_;
+  my $hash = $param->{hash};
+  my $name = $hash->{NAME};
+
+  if($err ne "") {
+    Log3 $name, 0, "error while requesting ".$param->{url}." - $err";
+    $hash->{ZM_VERSION} = 'error';
+    $hash->{ZM_API_VERSION} = 'error';
+  } elsif($data ne "") {
+      
+      my $zmVersion = ZoneMinder_GetConfigValueByKey($hash, $data, 'version');
+      if (not $zmVersion) {
+        $zmVersion = 'unknown';
+      }
+      $hash->{ZM_VERSION} = $zmVersion;
+
+      my $zmApiVersion = ZoneMinder_GetConfigValueByKey($hash, $data, 'apiversion');
+      if (not $zmApiVersion) {
+        $zmApiVersion = 'unknown';
+      }
+      $hash->{ZM_API_VERSION} = $zmApiVersion;
+  }
+
+  return undef;
+}
+
 sub ZoneMinder_API_ReadConfig {
   my ($hash) = @_;
   my $name = $hash->{NAME};
 
-  my $zmHost = $hash->{helper}{ZM_HOST};
+  #my $zmHost = $hash->{helper}{ZM_HOST};
   my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
 
   my $apiParam = {
