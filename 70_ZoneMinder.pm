@@ -326,7 +326,7 @@ sub ZoneMinder_UpdateMonitorAttributes {
     Log3 $hash, 3, "UpdateMonitorAttributes unable to find logical device with address $monitorId";
     return undef;
   }
-  Log3 $hash, 3, "UpdateMonitorAttributes for address $monitorId";
+  Log3 $hash, 5, "UpdateMonitorAttributes for address $monitorId";
 
   my $function = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Function');
   my $enabled = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Enabled');
@@ -371,6 +371,13 @@ sub ZoneMinder_Write {
     my $zmEnabled = $arguments->{zmEnabled};
     Log3 $hash->{NAME}, 4, "method: $method, monitorId:$zmMonitorId, Enabled:$zmEnabled";
     return ZoneMinder_API_ChangeMonitorState($hash, $zmMonitorId, undef, $zmEnabled);
+
+  } elsif ($method eq 'changeMonitorAlarm') {
+
+    my $zmMonitorId = $arguments->{zmMonitorId};
+    my $zmAlarm = $arguments->{zmAlarm};
+    Log3 $hash->{NAME}, 4, "method: $method, monitorId:$zmMonitorId, Alarm:$zmAlarm";
+    return ZoneMinder_Trigger_ChangeAlarmState($hash, $zmMonitorId, $zmAlarm);
 
   }
 
@@ -435,6 +442,23 @@ sub ZoneMinder_API_ChangeMonitorState_Callback {
     Log3 $name, 2, "ZoneMinder ($name) - ChangeMonitorState callback err: $err";
   }
   
+  return undef;
+}
+
+sub ZoneMinder_Trigger_ChangeAlarmState {
+  my ( $hash, $zmMonitorId, $zmAlarm ) = @_;
+  my $name = $hash->{NAME};
+
+  my $msg = "$zmMonitorId|";
+  if ( 'on' eq $zmAlarm ) {
+    DevIo_SimpleWrite( $hash, $msg.'on|1|fhem', 2 );
+  } elsif ( 'off' eq $zmAlarm ) {
+    DevIo_SimpleWrite( $hash, $msg.'off|1|fhem', 2);
+  } elsif ( $zmAlarm =~ /^on\-for\-timer/ ) {
+    my $duration = $zmAlarm =~ s/on\-for\-timer\ /on\+/r;
+    DevIo_SimpleWrite( $hash, $msg.$duration.'|1|fhem', 2);
+  }
+
   return undef;
 }
 

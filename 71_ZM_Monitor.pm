@@ -1,9 +1,9 @@
 package main;
 use strict;
 use warnings;
-use FileHandle;
 
 my @ZM_Functions = qw( None Monitor Modect Record Mocord Nodect );
+my @ZM_Alarms = qw( on off on-for-timer );
 
 sub ZM_Monitor_Initialize {
   my ($hash) = @_;
@@ -16,12 +16,8 @@ sub ZM_Monitor_Initialize {
   $hash->{FW_detailFn} = "ZM_Monitor_DetailFn";
   $hash->{ParseFn}     = "ZM_Monitor_Parse";
 
-  $hash->{AttrList} = "function enabled streamReplayBuffer ".$readingFnAttributes;
+  $hash->{AttrList} = $readingFnAttributes;
   $hash->{Match} = "^.*";
-
-  
-
-#  Log3 '', 3, "ZM_Monitor - Initialize done ...";
 
   return undef;
 }
@@ -163,7 +159,6 @@ sub ZM_Monitor_Set {
   if ( "Function" eq $cmd ) {
     my $arg = $args[0];
     if (grep { $_ eq $arg } @ZM_Functions) {
-#      Log3 $name, 0, "Function parameter: $arg";
       my $arguments = {
         method => 'changeMonitorFunction',
         zmMonitorId => $hash->{helper}{ZM_MONITOR_ID},
@@ -172,7 +167,7 @@ sub ZM_Monitor_Set {
       my $result = IOWrite($hash, $arguments);
       return $result;
     }
-    return "Unknown value $args[0] for $cmd, choose one of ".join(' ', @ZM_Functions);
+    return "Unknown value $arg for $cmd, choose one of ".join(' ', @ZM_Functions);
   } elsif ("Enabled" eq $cmd ) {
     my $arg = $args[0];
     if ($arg eq '1' || $arg eq '0') {
@@ -184,11 +179,25 @@ sub ZM_Monitor_Set {
       my $result = IOWrite($hash, $arguments);
       return $result;
     }
-    return "Unknown value $args[0] for $cmd, choose one of 0 1";
+    return "Unknown value $arg for $cmd, choose one of 0 1";
+  } elsif ("Alarm" eq $cmd) {
+    my $arg = $args[0];
+    if (grep { $_ eq $arg } @ZM_Alarms) {
+
+      $arg .= ' '.$args[1] if ( 'on-for-timer' eq $arg );
+      my $arguments = {
+        method => 'changeMonitorAlarm',
+        zmMonitorId => $hash->{helper}{ZM_MONITOR_ID},
+        zmAlarm => $arg
+      };
+      my $result = IOWrite($hash, $arguments);
+      return $result;
+    }
+    return "Unknown value $arg for $cmd, chose one of ".join(' '. @ZM_Alarms);
   }
 
 #  return "Unknown argument $cmd, chose one of Function:None,Monitor,Modect,Record,Mocord,Nodect Enabled:0,1";
-  return 'Function:'.join(',', @ZM_Functions).' Enabled:0,1';
+  return 'Function:'.join(',', @ZM_Functions).' Enabled:0,1'.' Alarm:on,off,on-for-timer';
 }
 
 # incoming messages from physical device module (70_ZoneMinder in this case).
