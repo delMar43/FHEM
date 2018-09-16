@@ -340,7 +340,7 @@ sub ZM_Monitor_WriteEventStreamUrlToReading {
   $imageReadingName =~ s/Stream/Image/g;
   readingsBulkUpdate($hash, $imageReadingName, $imageUrl, 1);
 
-  $streamUrl = $streamUrl."$zmPathZms?source=event&mode=jpeg&event=$eventId&frame=1&scale=100&rate=100&maxfps=30&replay=gapless".$authPart;
+  $streamUrl = $streamUrl."$zmPathZms?source=event&mode=jpeg&event=$eventId&frame=1&scale=100&rate=100&maxfps=30".$authPart;
   readingsBulkUpdate($hash, $readingName, $streamUrl, 1);
 
 }
