@@ -411,13 +411,14 @@ sub ZoneMinder_calcAuthHash {
 
 sub ZoneMinder_Shutdown {
   ZoneMinder_Undef(@_);
-}
+}  
 
 sub ZoneMinder_Undef {
   my ($hash, $arg) = @_; 
   my $name = $hash->{NAME};
 
   DevIo_CloseDev($hash) if (DevIo_IsOpen($hash));
+  RemoveInternalTimer($hash);
 
   return undef;
 }
