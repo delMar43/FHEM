@@ -454,7 +454,7 @@ sub ZoneMinder_Trigger_ChangeAlarmState {
   } elsif ( 'off' eq $zmAlarm ) {
     DevIo_SimpleWrite( $hash, $msg.'off|1|fhem', 2);
   } elsif ( $zmAlarm =~ /^on\-for\-timer/ ) {
-    my $duration = $zmAlarm =~ s/on\-for\-timer\ /on\+/r;
+    my $duration = $zmAlarm =~ s/on\-for\-timer\ /on\ /r;
     DevIo_SimpleWrite( $hash, $msg.$duration.'|1|fhem', 2);
   }
 
