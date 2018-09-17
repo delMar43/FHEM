@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 my @ZM_Functions = qw( None Monitor Modect Record Mocord Nodect );
-my @ZM_Alarms = qw( on off on-for-timer text );
+my @ZM_Alarms = qw( on off on-for-timer );
 
 sub ZM_Monitor_Initialize {
   my ($hash) = @_;
