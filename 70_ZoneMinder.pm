@@ -379,6 +379,13 @@ sub ZoneMinder_Write {
     Log3 $hash->{NAME}, 4, "method: $method, monitorId:$zmMonitorId, Alarm:$zmAlarm";
     return ZoneMinder_Trigger_ChangeAlarmState($hash, $zmMonitorId, $zmAlarm);
 
+  } elsif ($method eq 'changeMonitorText') {
+
+    my $zmMonitorId = $arguments->{zmMonitorId};
+    my $zmText = $arguments->{text};
+    Log3 $hash->{NAME}, 4, "method: $method, monitorId:$zmMonitorId, Text:$zmText";
+    return ZoneMinder_Trigger_ChangeText($hash, $zmMonitorId, $zmText);
+
   }
 
   return undef;
@@ -457,6 +464,16 @@ sub ZoneMinder_Trigger_ChangeAlarmState {
     my $duration = $zmAlarm =~ s/on\-for\-timer\ /on\ /r;
     DevIo_SimpleWrite( $hash, $msg.$duration.'|1|fhem', 2);
   }
+
+  return undef;
+}
+
+sub ZoneMinder_Trigger_ChangeText {
+  my ( $hash, $zmMonitorId, $zmText ) = @_;
+  my $name = $hash->{NAME};
+
+  my $msg = "$zmMonitorId|show||||$zmText";
+  DevIo_SimpleWrite( $hash, $msg, 2 );
 
   return undef;
 }

@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 my @ZM_Functions = qw( None Monitor Modect Record Mocord Nodect );
-my @ZM_Alarms = qw( on off on-for-timer );
+my @ZM_Alarms = qw( on off on-for-timer text );
 
 sub ZM_Monitor_Initialize {
   my ($hash) = @_;
@@ -194,10 +194,23 @@ sub ZM_Monitor_Set {
       return $result;
     }
     return "Unknown value $arg for $cmd, chose one of ".join(' '. @ZM_Alarms);
+  } elsif ("Text" eq $cmd) {
+    my $arg = join ' ', @args;
+    if (not $arg) {
+      $arg = '';    
+    }
+
+    my $arguments = {
+      method => 'changeMonitorText',
+      zmMonitorId => $hash->{helper}{ZM_MONITOR_ID},
+      text => $arg
+    };
+    my $result = IOWrite($hash, $arguments);
+    return $result;
   }
 
 #  return "Unknown argument $cmd, chose one of Function:None,Monitor,Modect,Record,Mocord,Nodect Enabled:0,1";
-  return 'Function:'.join(',', @ZM_Functions).' Enabled:0,1'.' Alarm:on,off,on-for-timer';
+  return 'Function:'.join(',', @ZM_Functions).' Enabled:0,1 Alarm:on,off,on-for-timer Text';
 }
 
 # incoming messages from physical device module (70_ZoneMinder in this case).
@@ -254,58 +267,6 @@ sub ZM_Monitor_HandleEvent {
     my $autocreate = "UNDEFINED ZM_Monitor_$logDevAddress ZM_Monitor $zmMonitorId";
     Log3 $io_hash, 5, "logical device with address $logDevAddress not found. returning autocreate: $autocreate";
     return $autocreate;
-  }
-}
-
-sub ZM_Monitor_downloadEventImage {
-  my ( $hash, $eventId ) = @_;
-  my $name = $hash->{NAME};
-  
-  my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
-  if (not $zmPathZms) {
-    return undef;
-  }
-  my $zmHost = $hash->{IODev}{helper}{ZM_HOST};
-  my $zmUsername = ZM_Monitor_Urlencode($hash->{IODev}{helper}{ZM_USERNAME});
-  my $zmPassword = ZM_Monitor_Urlencode($hash->{IODev}{helper}{ZM_PASSWORD});
-  my $authPart = "&user=$zmUsername&pass=$zmPassword";
-  my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
-  my $streamUrl = "http://$zmHost/";
-  my $imageUrl = $streamUrl."$zmPathZms?mode=single&scale=100&monitor=$zmMonitorId".$authPart;
-
-  Log3 $name, 0, "ZM_Monitor ($name) - would download event image from $imageUrl";
-  
-  my $param = {
-    url => $imageUrl,
-    method => "GET",
-    callback => \&ZM_Monitor_downloadEventImage_Callback,
-    hash => $hash,
-    eventId => $eventId
-  };
-  HttpUtils_NonblockingGet($param);
-  
-  return undef;
-}
-
-sub ZM_Monitor_downloadEventImage_Callback {
-  my ($param, $err, $data) = @_;
-  my $hash = $param->{hash};
-  my $eventId = $param->{eventId};
-  my $name = $hash->{NAME};
-
-  if($err ne "") {
-    Log3 $name, 3, "error while requesting ".$param->{url}." - $err";
-#    readingsSingleUpdate($hash, "fullResponse", "ERROR", 0);
-  } elsif($data ne "") {
-    #Log3 $name, 3, "url ".$param->{url}." returned data";
-    my $bin=pack("u", "$data");
-
-    my $OUT= new FileHandle;
-    open ($OUT, "/opt/fhem/unused/".$eventId.".jpg");
-    print $OUT $bin;
-    $OUT->close;
-    
-#    readingsSingleUpdate($hash, "fullResponse", $data, 0);
   }
 }
 
