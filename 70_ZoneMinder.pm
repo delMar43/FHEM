@@ -473,6 +473,7 @@ sub ZoneMinder_Trigger_ChangeText {
   my $name = $hash->{NAME};
 
   my $msg = "$zmMonitorId|show||||$zmText";
+  Log3 $name, 4, "ZoneMinder ($name) - Change Text $msg";
   DevIo_SimpleWrite( $hash, $msg, 2 );
 
   return undef;
