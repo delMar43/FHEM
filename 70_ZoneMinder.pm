@@ -63,8 +63,8 @@ sub ZoneMinder_Define {
     }
 
     my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
-    my $zmUsername = ZoneMinder_urlencode($hash->{helper}{ZM_USERNAME});
-    my $zmPassword = ZoneMinder_urlencode($hash->{helper}{ZM_PASSWORD});
+    my $zmUsername = urlEncode($hash->{helper}{ZM_USERNAME});
+    my $zmPassword = urlEncode($hash->{helper}{ZM_PASSWORD});
     readingsSingleUpdate($hash, "ZMConsoleUrl", "$zmWebUrl/index.php?username=$zmUsername&password=$zmPassword&action=login&view=console", 0);
     ZoneMinder_API_Login($hash, 'old');
   }
@@ -77,20 +77,13 @@ sub ZoneMinder_Define {
   return undef;
 }
 
-sub ZoneMinder_urlencode {
-    my $s = shift;
-    $s =~ s/ /+/g;
-    $s =~ s/([^A-Za-z0-9\+-])/sprintf("%%%02X", ord($1))/seg;
-    return $s;
-}
-
 sub ZoneMinder_API_Login {
   my ($hash, $loginMethod) = @_;
   my $name = $hash->{NAME};
 
   my $zmHost = $hash->{helper}{ZM_HOST};
-  my $username = ZoneMinder_urlencode($hash->{helper}{ZM_USERNAME});
-  my $password = ZoneMinder_urlencode($hash->{helper}{ZM_PASSWORD});
+  my $username = urlEncode($hash->{helper}{ZM_USERNAME});
+  my $password = urlEncode($hash->{helper}{ZM_PASSWORD});
 
   my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
   my $loginUrl = '';
