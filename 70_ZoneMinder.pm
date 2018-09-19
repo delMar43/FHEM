@@ -481,9 +481,14 @@ sub ZoneMinder_Trigger_ChangeText {
 
 sub ZoneMinder_calcAuthHash {
   my ($hash) = @_;
+  my $name = $hash->{NAME};
   my ($sec,$min,$curHour,$dayOfMonth,$curMonth,$curYear,$wday,$yday,$isdst) = localtime();
 
   my $zmAuthHashSecret = $hash->{helper}{ZM_AUTH_HASH_SECRET};
+  if (not $zmAuthHashSecret) {
+    Log3 $name, 0, "ZoneMinder ($name) - calcAuthHash was called, but no hash secret was found. This shouldn't happen. Please contact the module maintainer.";
+    return undef;
+  }
   my $username = $hash->{helper}{ZM_USERNAME};
   my $password = $hash->{helper}{ZM_PASSWORD};
   my $hashedPassword = password41($password);
@@ -496,8 +501,6 @@ sub ZoneMinder_calcAuthHash {
 
   return undef;
 }
-
-
 
 sub ZoneMinder_Shutdown {
   ZoneMinder_Undef(@_);
@@ -569,8 +572,17 @@ sub ZoneMinder_Set {
 
 sub ZoneMinder_Ready {
   my ( $hash ) = @_;
+  my $name = $hash->{NAME};
 
-  return DevIo_OpenDev($hash, 1, undef ) if ( $hash->{STATE} eq "disconnected" );
+  if ( $hash->{STATE} eq "disconnected" ) {
+    my $err = DevIo_OpenDev($hash, 1, undef ); #if success, $err is undef
+    if (not $err) {
+      Log3 $name, 3, "ZoneMinder ($name) - reconnect to ZoneMinder successful";
+    } else {
+      Log3 $name, 0, "ZoneMinder ($name) - reconnect to ZoneMinder failed: $err";
+    }
+    return $err;
+  }
 
   # This is relevant for Windows/USB only
   if(defined($hash->{USBDev})) {
