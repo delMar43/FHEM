@@ -128,9 +128,12 @@ sub ZoneMinder_API_Login_Callback {
       delete($defs{$name}{APILoginError});
       
       ZoneMinder_GetCookies($hash, $param->{httpheader});
-      ZoneMinder_API_ReadHostInfo($hash);
-      ZoneMinder_API_ReadConfig($hash);
-      ZoneMinder_API_ReadMonitors($hash);
+
+      my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
+      ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/host/getVersion.json", \&ZoneMinder_API_ReadHostInfo_Callback);
+      ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/host/getLoad.json", \&ZoneMinder_API_ReadHostLoad_Callback);
+      ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/configs.json", \&ZoneMinder_API_ReadConfig_Callback);
+      ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/monitors.json", \&ZoneMinder_API_ReadMonitors_Callback);
 
       InternalTimer(gettimeofday() + 3600, "ZoneMinder_API_Login", $hash, $loginMethod);
     }
@@ -139,16 +142,14 @@ sub ZoneMinder_API_Login_Callback {
   return undef;
 }
 
-sub ZoneMinder_API_ReadHostInfo {
-  my ($hash) = @_;
+sub ZoneMinder_SimpleGet {
+  my ($hash, $url, $callback) = @_;
   my $name = $hash->{NAME};
 
-  my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
-
   my $apiParam = {
-    url => "$zmWebUrl/api/host/getVersion.json",
+    url => $url,
     method => "GET",
-    callback => \&ZoneMinder_API_ReadHostInfo_Callback,
+    callback => $callback,
     hash => $hash
   };
 
@@ -157,7 +158,7 @@ sub ZoneMinder_API_ReadHostInfo {
     $apiParam->{header} .= "Cookie: " . $hash->{HTTPCookies};
   }
 
-  HttpUtils_NonblockingGet($apiParam);  
+  HttpUtils_NonblockingGet($apiParam);
 }
 
 sub ZoneMinder_API_ReadHostInfo_Callback {
@@ -187,27 +188,20 @@ sub ZoneMinder_API_ReadHostInfo_Callback {
   return undef;
 }
 
-sub ZoneMinder_API_ReadConfig {
-  my ($hash) = @_;
+sub ZoneMinder_API_ReadHostLoad_Callback {
+  my ($param, $err, $data) = @_;
+  my $hash = $param->{hash};
   my $name = $hash->{NAME};
 
-  #my $zmHost = $hash->{helper}{ZM_HOST};
-  my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
-
-  my $apiParam = {
-    url => "$zmWebUrl/api/configs.json",
-    method => "GET",
-    callback => \&ZoneMinder_API_ReadConfig_Callback,
-    hash => $hash
-  };
-
-  if ($hash->{HTTPCookies}) {
-#    Log3 $name, 5, "$name.ZoneMinder_API_ReadConfig: Adding Cookies: " . $hash->{HTTPCookies};
-    $apiParam->{header} .= "\r\n" if ($apiParam->{header});
-    $apiParam->{header} .= "Cookie: " . $hash->{HTTPCookies};
+  if($err ne "") {
+    Log3 $name, 0, "error while requesting ".$param->{url}." - $err";
+    readingsSingleUpdate($hash, 'CPU_Load', 'error', 0);
+  } elsif($data ne "") {
+    my $load = ZoneMinder_GetConfigValueByKey($hash, $data, 'load');
+    readingsSingleUpdate($hash, 'CPU_Load', $load, 1);
   }
 
-  HttpUtils_NonblockingGet($apiParam);
+  return undef;
 }
 
 sub ZoneMinder_API_ReadConfig_Callback {
@@ -252,37 +246,15 @@ sub ZoneMinder_GetFromJson {
 
   my $searchLength = length($searchString);
   my $startIdx = index($config, $searchString);
-#  Log3 $name, 5, "$searchString found at $startIdx";
+  Log3 $name, 5, "$searchString found at $startIdx";
   $startIdx += $searchLength;
   my $endIdx = index($config, '"', $startIdx);
   my $frame = $endIdx - $startIdx;
   my $searchResult = substr $config, $startIdx, $frame;
 
-#  Log3 $name, 5, "looking for $searchString - length: $searchLength. start: $startIdx. end: $endIdx. result: $searchResult";
+  Log3 $name, 5, "looking for $searchString - length: $searchLength. start: $startIdx. end: $endIdx. result: $searchResult";
   
   return $searchResult;
-}
-
-sub ZoneMinder_API_ReadMonitors {
-  my ( $hash ) = @_;
-  my $name = $hash->{NAME};
-
-  my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
-
-  my $apiParam = {
-    url => "$zmWebUrl/api/monitors.json",
-    method => "GET",
-    callback => \&ZoneMinder_API_ReadMonitors_Callback,
-    hash => $hash
-  };
-
-  if ($hash->{HTTPCookies}) {
-#    Log3 $name, 5, "$name.ZoneMinder_API_ReadMonitors: Adding Cookies: " . $hash->{HTTPCookies};
-    $apiParam->{header} .= "\r\n" if ($apiParam->{header});
-    $apiParam->{header} .= "Cookie: " . $hash->{HTTPCookies};
-  }
-
-  return HttpUtils_NonblockingGet($apiParam);
 }
 
 sub ZoneMinder_API_ReadMonitors_Callback {
@@ -335,11 +307,8 @@ sub ZoneMinder_UpdateMonitorAttributes {
 sub ZoneMinder_GetCookies {
     my ($hash, $header) = @_;
     my $name = $hash->{NAME};
-    #Log3 $name, 5, "$name: looking for Cookies in $header";
     foreach my $cookie ($header =~ m/set-cookie: ?(.*)/gi) {
-        #Log3 $name, 5, "$name: Set-Cookie: $cookie";
         $cookie =~ /([^,; ]+)=([^,; ]+)[;, ]*(.*)/;
-        #Log3 $name, 4, "$name: Cookie: $1 Wert $2 Rest $3";
         $hash->{HTTPCookieHash}{$1}{Value} = $2;
         $hash->{HTTPCookieHash}{$1}{Options} = ($3 ? $3 : "");
     }
@@ -406,7 +375,6 @@ sub ZoneMinder_API_ChangeMonitorState {
   } elsif ( $zmEnabled || $zmEnabled eq '0' ) {
     $apiParam->{data} = "Monitor[Enabled]=$zmEnabled";
   }
-  #Log3 $name, 5, "ZoneMinder ($name) - url: ".$apiParam->{url}." data: ".$apiParam->{data};
 
   if ($hash->{HTTPCookies}) {
     $apiParam->{header} .= "\r\n" if ($apiParam->{header});
@@ -414,8 +382,6 @@ sub ZoneMinder_API_ChangeMonitorState {
   }
 
   HttpUtils_NonblockingGet($apiParam);
-
-#  Log3 $name, 3, "ZoneMinder ($name) - ZoneMinder_API_Login err: $apiErr, data: $apiParam";
 
   return undef;
 }
