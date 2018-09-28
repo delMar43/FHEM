@@ -17,7 +17,7 @@ sub ZM_Monitor_Initialize {
   $hash->{FW_detailFn} = "ZM_Monitor_DetailFn";
   $hash->{ParseFn}     = "ZM_Monitor_Parse";
 
-  $hash->{AttrList} = $readingFnAttributes;
+  $hash->{AttrList} = 'showLiveStreamInDetail:0,1 '.$readingFnAttributes;
   $hash->{Match} = "^.*";
 
   return undef;
@@ -109,6 +109,11 @@ sub ZM_Monitor_DetailFn {
   my ( $FW_wname, $deviceName, $FW_room ) = @_;
 
   my $hash = $defs{$deviceName};
+  my $name = $hash->{NAME};
+  
+  my $showLiveStream = $attr{$name}{showLiveStreamInDetail};
+  return "<div>To view a live stream here, execute: attr $name showLiveStreamInDetail 1</div>" if (not $showLiveStream);
+
   my $streamDisabled = (ReadingsVal($deviceName, 'Function', 'None') eq 'None');
   if ($streamDisabled) {
     return '<div>Streaming disabled</div>';
