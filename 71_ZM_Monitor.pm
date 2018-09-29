@@ -16,6 +16,7 @@ sub ZM_Monitor_Initialize {
   $hash->{ReadFn}      = "ZM_Monitor_Read";
   $hash->{FW_detailFn} = "ZM_Monitor_DetailFn";
   $hash->{ParseFn}     = "ZM_Monitor_Parse";
+  $hash->{NotifyFn}    = "ZM_Monitor_Notify";
 
   $hash->{AttrList} = 'showLiveStreamInDetail:0,1 '.$readingFnAttributes;
   $hash->{Match} = "^.*";
@@ -25,6 +26,8 @@ sub ZM_Monitor_Initialize {
 
 sub ZM_Monitor_Define {
   my ( $hash, $def ) = @_;
+  $hash->{NOTIFYDEV} = "TYPE=ZoneMinder";
+
   my @a = split( "[ \t][ \t]*", $def );
  
   my $name   = $a[0];
@@ -114,12 +117,11 @@ sub ZM_Monitor_DetailFn {
   my $showLiveStream = $attr{$name}{showLiveStreamInDetail};
   return "<div>To view a live stream here, execute: attr $name showLiveStreamInDetail 1</div>" if (not $showLiveStream);
 
-  my $streamDisabled = (ReadingsVal($deviceName, 'Function', 'None') eq 'None');
+  my $streamDisabled = (ReadingsVal($deviceName, 'monitorFunction', 'None') eq 'None');
   if ($streamDisabled) {
     return '<div>Streaming disabled</div>';
   }
 
-  ZM_Monitor_UpdateStreamUrls($hash);
   my $streamUrl = ReadingsVal($deviceName, 'pubStreamUrl', undef);
   if (not $streamUrl) {
     $streamUrl = ReadingsVal($deviceName, 'streamUrl', undef);
@@ -155,7 +157,7 @@ sub ZM_Monitor_Get {
 sub ZM_Monitor_Set {
   my ( $hash, $name, $cmd, @args ) = @_;
 
-  if ( "Function" eq $cmd ) {
+  if ( "monitorFunction" eq $cmd ) {
     my $arg = $args[0];
     if (grep { $_ eq $arg } @ZM_Functions) {
       my $arguments = {
@@ -167,7 +169,7 @@ sub ZM_Monitor_Set {
       return $result;
     }
     return "Unknown value $arg for $cmd, choose one of ".join(' ', @ZM_Functions);
-  } elsif ("Enabled" eq $cmd ) {
+  } elsif ("motionDetectionEnabled" eq $cmd ) {
     my $arg = $args[0];
     if ($arg eq '1' || $arg eq '0') {
       my $arguments = {
@@ -179,7 +181,7 @@ sub ZM_Monitor_Set {
       return $result;
     }
     return "Unknown value $arg for $cmd, choose one of 0 1";
-  } elsif ("Alarm" eq $cmd) {
+  } elsif ("alarmState" eq $cmd) {
     my $arg = $args[0];
     if (grep { $_ eq $arg } @ZM_Alarms) {
 
@@ -193,7 +195,7 @@ sub ZM_Monitor_Set {
       return $result;
     }
     return "Unknown value $arg for $cmd, chose one of ".join(' '. @ZM_Alarms);
-  } elsif ("Text" eq $cmd) {
+  } elsif ("text" eq $cmd) {
     my $arg = join ' ', @args;
     if (not $arg) {
       $arg = '';    
@@ -209,7 +211,7 @@ sub ZM_Monitor_Set {
   }
 
 #  return "Unknown argument $cmd, chose one of Function:None,Monitor,Modect,Record,Mocord,Nodect Enabled:0,1";
-  return 'Function:'.join(',', @ZM_Functions).' Enabled:0,1 Alarm:on,off,on-for-timer Text';
+  return 'monitorFunction:'.join(',', @ZM_Functions).' motionDetectionEnabled:0,1 alarmState:on,off,on-for-timer text';
 }
 
 # incoming messages from physical device module (70_ZoneMinder in this case).
@@ -312,6 +314,29 @@ sub ZM_Monitor_WriteEventStreamUrlToReading {
   $streamUrl = $streamUrl."$zmPathZms?source=event&mode=jpeg&event=$eventId&frame=1&scale=100&rate=100&maxfps=30".$authPart;
   readingsBulkUpdate($hash, $readingName, $streamUrl, 1);
 
+}
+
+sub ZM_Monitor_Notify {
+  my ($own_hash, $dev_hash) = @_;
+  my $name = $own_hash->{NAME}; # own name / hash
+
+  return "" if(IsDisabled($name)); # Return without any further action if the module is disabled
+
+  my $devName = $dev_hash->{NAME}; # Device that created the events
+
+  my $events = deviceEvents($dev_hash,1);
+  return if( !$events );
+
+  foreach my $event (@{$events}) {
+    $event = "" if(!defined($event));
+    Log3 $name, 0, "ZM_Monitor ($name) - Incoming event: $event";
+    # Examples:
+    # $event = "readingname: value" 
+    # or
+    # $event = "INITIALIZED" (for $devName equal "global")
+    #
+    # processing $event with further code
+  }
 }
 
 # Eval-Rückgabewert für erfolgreiches

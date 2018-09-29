@@ -94,7 +94,7 @@ sub ZoneMinder_API_Login {
   }
   $hash->{helper}{ZM_LOGIN_METHOD} = $loginMethod;
 
-  Log3 $name, 0, "ZoneMinder ($name) - zmWebUrl: $zmWebUrl";
+  Log3 $name, 4, "ZoneMinder ($name) - zmWebUrl: $zmWebUrl";
   my $apiParam = {
     url => $loginUrl,
     method => "POST",
@@ -133,7 +133,7 @@ sub ZoneMinder_API_Login_Callback {
       ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/host/getVersion.json", \&ZoneMinder_API_ReadHostInfo_Callback);
       ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/host/getLoad.json", \&ZoneMinder_API_ReadHostLoad_Callback);
       ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/configs.json", \&ZoneMinder_API_ReadConfig_Callback);
-      ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/monitors.json", \&ZoneMinder_API_ReadMonitors_Callback);
+#      ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/monitors.json", \&ZoneMinder_API_ReadMonitors_Callback);
 
       InternalTimer(gettimeofday() + 3600, "ZoneMinder_API_Login", $hash, $loginMethod);
     }
@@ -244,6 +244,7 @@ sub ZoneMinder_GetFromJson {
   my ($hash, $config, $searchString) = @_;
   my $name = $hash->{NAME};
 
+#  Log3 $name, 5, "json: $config";
   my $searchLength = length($searchString);
   my $startIdx = index($config, $searchString);
   Log3 $name, 5, "$searchString found at $startIdx";
@@ -298,9 +299,9 @@ sub ZoneMinder_UpdateMonitorAttributes {
   my $streamReplayBuffer = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'StreamReplayBuffer');
   
   readingsBeginUpdate($logDevHash);
-  readingsBulkUpdateIfChanged($logDevHash, 'Function', $function);
-  readingsBulkUpdateIfChanged($logDevHash, 'Enabled', $enabled);
-  readingsBulkUpdateIfChanged($logDevHash, 'StreamReplayBuffer', $streamReplayBuffer);
+  readingsBulkUpdateIfChanged($logDevHash, 'monitorFunction', $function);
+  readingsBulkUpdateIfChanged($logDevHash, 'motionDetectionEnabled', $enabled);
+  readingsBulkUpdateIfChanged($logDevHash, 'streamReplayBuffer', $streamReplayBuffer);
   readingsEndUpdate($logDevHash, 1);
 }
 
@@ -398,9 +399,9 @@ sub ZoneMinder_API_ChangeMonitorState_Callback {
     Log3 $name, 4, "ZM_Monitor ($name) - ChangeMonitorState callback data: $data, enabled: $enabled";
 
     if ($function) {
-      readingsSingleUpdate($logDevHash, 'Function', $function, 1);
+      readingsSingleUpdate($logDevHash, 'monitorFunction', $function, 1);
     } elsif ($enabled || $enabled eq '0') {
-      readingsSingleUpdate($logDevHash, 'Enabled', $enabled, 1);
+      readingsSingleUpdate($logDevHash, 'motionDetectionEnabled', $enabled, 1);
     }
 
   } else {
@@ -441,6 +442,9 @@ sub ZoneMinder_Trigger_ChangeText {
 sub ZoneMinder_calcAuthHash {
   my ($hash) = @_;
   my $name = $hash->{NAME};
+
+  Log3 $name, 4, "ZoneMinder ($name) - calling calcAuthHash";
+
   my ($sec,$min,$curHour,$dayOfMonth,$curMonth,$curYear,$wday,$yday,$isdst) = localtime();
 
   my $zmAuthHashSecret = $hash->{helper}{ZM_AUTH_HASH_SECRET};
@@ -454,8 +458,9 @@ sub ZoneMinder_calcAuthHash {
 
   my $authHash = $zmAuthHashSecret . $username . $hashedPassword . $curHour . $dayOfMonth . $curMonth . $curYear;
   my $authKey = md5_hex($authHash);
+  
   $hash->{helper}{ZM_AUTH_KEY} = $authKey;
-
+  readingsSingleUpdate($hash, 'authHash', $authKey, 1);
   InternalTimer(gettimeofday() + 3600, "ZoneMinder_calcAuthHash", $hash);
 
   return undef;
@@ -513,12 +518,16 @@ sub ZoneMinder_Get {
   my ( $hash, $name, $opt, $args ) = @_;
 
   if ("updateMonitors" eq $opt) {
-    ZoneMinder_API_ReadMonitors($hash);
+    my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
+    ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/monitors.json", \&ZoneMinder_API_ReadMonitors_Callback);
+    return undef;
+  } elsif ("calcAuthHash" eq $opt) {
+    ZoneMinder_calcAuthHash($hash);
     return undef;
   }
 
 #  Log3 $name, 3, "ZoneMinder ($name) - Get done ...";
-  return "Unknown argument $opt, choose one of updateMonitors";
+  return "Unknown argument $opt, choose one of updateMonitors calcAuthHash";
 }
 
 sub ZoneMinder_Set {
