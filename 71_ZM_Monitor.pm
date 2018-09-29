@@ -13,7 +13,6 @@ sub ZM_Monitor_Initialize {
   $hash->{SetFn}       = "ZM_Monitor_Set";
   $hash->{DefFn}       = "ZM_Monitor_Define";
   $hash->{UndefFn}     = "ZM_Monitor_Undef";
-  $hash->{ReadFn}      = "ZM_Monitor_Read";
   $hash->{FW_detailFn} = "ZM_Monitor_DetailFn";
   $hash->{ParseFn}     = "ZM_Monitor_Parse";
   $hash->{NotifyFn}    = "ZM_Monitor_Notify";
@@ -48,6 +47,7 @@ sub ZM_Monitor_Define {
   my $ioDevName = $hash->{IODev}{NAME};
   my $logDevAddress = $ioDevName.'_'.$zmMonitorId;
   # Adresse rückwärts dem Hash zuordnen (für ParseFn)
+  Log3 $name, 3, "ZM_Monitor ($name) - Logical device address: $logDevAddress";
   $modules{ZM_Monitor}{defptr}{$logDevAddress} = $hash;
   
 #  Log3 $name, 3, "ZM_Monitor ($name) - Define done ... module=$module, zmHost=$zmHost, zmMonitorId=$zmMonitorId";
@@ -69,7 +69,7 @@ sub ZM_Monitor_UpdateStreamUrls {
   }
 
   my $zmHost = $hash->{IODev}{helper}{ZM_HOST};
-  my $streamUrl = "http://$zmHost/";
+  my $streamUrl = "http://$zmHost";
   my $zmUsername = urlEncode($hash->{IODev}{helper}{ZM_USERNAME});
   my $zmPassword = urlEncode($hash->{IODev}{helper}{ZM_PASSWORD});
   my $authPart = "&user=$zmUsername&pass=$zmPassword";
@@ -79,32 +79,31 @@ sub ZM_Monitor_UpdateStreamUrls {
 
   my $pubStreamUrl = $attr{$ioDevName}{pubStreamUrl};
   if ($pubStreamUrl) {
-    my $authHash = $hash->{IODev}{helper}{ZM_AUTH_KEY};
-    if ($authHash) { #if ZM_AUTH_KEY is defeined, use the auth-hash. otherwise, use the previously defined username/pwd
+    my $authHash = ReadingsVal($ioDevName, 'authHash', '');
+    if ($authHash) { #if ZM_AUTH_KEY is defined, use the auth-hash. otherwise, use the previously defined username/pwd
       $authPart = "&auth=$authHash";
     }
     ZM_Monitor_WriteStreamUrlToReading($hash, $pubStreamUrl, 'pubStreamUrl', $authPart);
   }
   readingsEndUpdate($hash, 1);
 
-  InternalTimer(gettimeofday() + 3600, "ZM_Monitor_UpdateStreamUrls", $hash);
-
   return undef;
 }
 
 sub ZM_Monitor_WriteStreamUrlToReading {
   my ( $hash, $streamUrl, $readingName, $authPart ) = @_;
+  my $name = $hash->{NAME};
 
   my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
   my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
-  $streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
+  my $buffer = ReadingsVal($name, 'streamReplayBuffer', '1000');
 
   my $imageUrl = $streamUrl."$zmPathZms?mode=single&scale=100&monitor=$zmMonitorId".$authPart;
   my $imageReadingName = $readingName;
   $imageReadingName =~ s/Stream/Image/g;
   readingsBulkUpdate($hash, $imageReadingName, $imageUrl, 1);
   
-  $streamUrl = $streamUrl."$zmPathZms?mode=jpeg&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId".$authPart;
+  $streamUrl = $streamUrl."$zmPathZms?mode=jpeg&scale=100&maxfps=30&buffer=$buffer&monitor=$zmMonitorId".$authPart;
   readingsBulkUpdate($hash, $readingName, "$streamUrl", 1);
 }
 
@@ -135,13 +134,6 @@ sub ZM_Monitor_DetailFn {
 
 sub ZM_Monitor_Undef {
   my ($hash, $arg) = @_; 
-  my $name = $hash->{NAME};
-
-  return undef;
-}
-
-sub ZM_Monitor_Read {
-  my ($hash) = @_;
   my $name = $hash->{NAME};
 
   return undef;
@@ -210,7 +202,6 @@ sub ZM_Monitor_Set {
     return $result;
   }
 
-#  return "Unknown argument $cmd, chose one of Function:None,Monitor,Modect,Record,Mocord,Nodect Enabled:0,1";
   return 'monitorFunction:'.join(',', @ZM_Functions).' motionDetectionEnabled:0,1 alarmState:on,off,on-for-timer text';
 }
 
@@ -220,8 +211,10 @@ sub ZM_Monitor_Parse {
 
   my @msg = split(/\:/, $message, 2);
   my $msgType = $msg[0];
-  if ($msgType eq "event") {
-    return ZM_Monitor_HandleEvent($io_hash, $msg[1]);
+  if ($msgType eq 'event') {
+    return ZM_Monitor_handleEvent($io_hash, $msg[1]);
+  } elsif ($msgType eq 'monitor') {
+    return ZM_Monitor_handleMonitorUpdate($io_hash, $msg[1]);
   } else {
     Log3 $io_hash, 0, "Unknown message type: $msgType";
   }
@@ -229,7 +222,7 @@ sub ZM_Monitor_Parse {
   return undef;
 }
 
-sub ZM_Monitor_HandleEvent {
+sub ZM_Monitor_handleEvent {
   my ( $io_hash, $message ) = @_;
 
   my $ioName = $io_hash->{NAME};
@@ -250,7 +243,6 @@ sub ZM_Monitor_HandleEvent {
     my $state;
     if ($alertState eq "on") {
       $state = "alert";
-#      ZM_Monitor_downloadEventImage($hash, $eventId);
     } elsif ($alertState eq "off") {
       $state = "idle";
     }
@@ -291,12 +283,44 @@ sub ZM_Monitor_createEventStreamUrl {
 
   my $pubStreamUrl = $attr{$ioDevName}{pubStreamUrl};
   if ($pubStreamUrl) {
-    my $authHash = $hash->{IODev}{helper}{ZM_AUTH_KEY};
+    my $authHash = ReadingsVal($ioDevName, 'ZM_AUTH_KEY', '');
     if ($authHash) { #if ZM_AUTH_KEY is defined, use the auth-hash. otherwise, use the previously defined username/pwd
       $authPart = "&auth=$authHash";
     }
     ZM_Monitor_WriteEventStreamUrlToReading($hash, $pubStreamUrl, 'pubEventStreamUrl', $authPart, $eventId);
   }
+}
+
+sub ZM_Monitor_handleMonitorUpdate {
+  my ( $io_hash, $message ) = @_;
+
+  my $ioName = $io_hash->{NAME};
+  my @msgTokens = split(/\|/, $message); #$message = "$monitorId|$function|$enabled|$streamReplayBuffer";
+  my $zmMonitorId = $msgTokens[0];
+  my $function = $msgTokens[1];
+  my $enabled = $msgTokens[2];
+  my $streamReplayBuffer = $msgTokens[3];
+  my $logDevAddress = $ioName.'_'.$zmMonitorId;
+
+  if ( my $hash = $modules{ZM_Monitor}{defptr}{$logDevAddress} ) {
+    readingsBeginUpdate($hash);
+    readingsBulkUpdateIfChanged($hash, 'monitorFunction', $function);
+    readingsBulkUpdateIfChanged($hash, 'motionDetectionEnabled', $enabled);
+    my $bufferChanged = readingsBulkUpdateIfChanged($hash, 'streamReplayBuffer', $streamReplayBuffer);
+    readingsEndUpdate($hash, 1);
+
+    if ($bufferChanged) {
+      ZM_Monitor_UpdateStreamUrls($hash);
+    }
+
+    return $hash->{NAME};
+  } else {
+    my $autocreate = "UNDEFINED ZM_Monitor_$logDevAddress ZM_Monitor $zmMonitorId";
+    Log3 $io_hash, 5, "logical device with address $logDevAddress not found. returning autocreate: $autocreate";
+    return $autocreate;
+  }
+
+  return undef;
 }
 
 sub ZM_Monitor_WriteEventStreamUrlToReading {
@@ -329,7 +353,15 @@ sub ZM_Monitor_Notify {
 
   foreach my $event (@{$events}) {
     $event = "" if(!defined($event));
-    Log3 $name, 0, "ZM_Monitor ($name) - Incoming event: $event";
+    Log3 $name, 4, "ZM_Monitor ($name) - Incoming event: $event";
+
+    my @msg = split(/\:/, $event, 2);
+    if ($msg[0] eq 'authHash') {
+      ZM_Monitor_UpdateStreamUrls($own_hash);
+    } else {
+      Log3 $name, 4, "ZM_Monitor ($name) - ignoring";
+    }
+
     # Examples:
     # $event = "readingname: value" 
     # or

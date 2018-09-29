@@ -48,7 +48,7 @@ sub ZoneMinder_Define {
   $hash->{DeviceName} = $zmHost;
 
   if ($nrArgs == 4 || $nrArgs > 6) {
-    my $msg = "ZoneMinder ($name) - Wrong syntax: define <name> ZoneMinder <ZM_URL> [<ZM_USERNAME> <ZM_PASSWORD>] [<ZM_WEB_URL>]";
+    my $msg = "ZoneMinder ($name) - Wrong syntax: define <name> ZoneMinder <ZM_URL> [<ZM_USERNAME> <ZM_PASSWORD>]";
     Log3 $name, 2, $msg;
     return $msg;
   }
@@ -270,39 +270,25 @@ sub ZoneMinder_API_ReadMonitors_Callback {
     my $monitorId = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Id');
 
     if ( $monitorId =~ /^[0-9]+$/ ) {
-      my $monitorAddress = $name.'_'.$monitorId;
-      my $newDevName = "ZM_Monitor_$monitorAddress";
-      if(not defined($modules{ZM_Monitor}{defptr}{$monitorAddress})) {
-        CommandDefine(undef, "$newDevName ZM_Monitor $monitorId");
-        $attr{$newDevName}{room} = "ZM_Monitor";
-      }
-      ZoneMinder_UpdateMonitorAttributes($hash, $monitorData, $monitorAddress);
+      ZoneMinder_UpdateMonitorAttributes($hash, $monitorData, $monitorId);
+    } else {
+      Log3 $name, 0, "Invalid monitorId: $monitorId";
     }
   }
-
-#  InternalTimer(gettimeofday() + 60, "ZoneMinder_API_ReadMonitors", $hash);
 
   return undef;  
 }
 
 sub ZoneMinder_UpdateMonitorAttributes {
   my ( $hash, $monitorData, $monitorId ) = @_;
-  my $logDevHash = $modules{ZM_Monitor}{defptr}{$monitorId};
-  if (not $logDevHash) {
-    Log3 $hash, 3, "UpdateMonitorAttributes unable to find logical device with address $monitorId";
-    return undef;
-  }
-  Log3 $hash, 5, "UpdateMonitorAttributes for address $monitorId";
 
   my $function = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Function');
   my $enabled = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Enabled');
   my $streamReplayBuffer = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'StreamReplayBuffer');
+
+  my $msg = "monitor:$monitorId|$function|$enabled|$streamReplayBuffer";
   
-  readingsBeginUpdate($logDevHash);
-  readingsBulkUpdateIfChanged($logDevHash, 'monitorFunction', $function);
-  readingsBulkUpdateIfChanged($logDevHash, 'motionDetectionEnabled', $enabled);
-  readingsBulkUpdateIfChanged($logDevHash, 'streamReplayBuffer', $streamReplayBuffer);
-  readingsEndUpdate($logDevHash, 1);
+  my $dispatchResult = Dispatch($hash, $msg, undef);
 }
 
 sub ZoneMinder_GetCookies {
@@ -459,7 +445,7 @@ sub ZoneMinder_calcAuthHash {
   my $authHash = $zmAuthHashSecret . $username . $hashedPassword . $curHour . $dayOfMonth . $curMonth . $curYear;
   my $authKey = md5_hex($authHash);
   
-  $hash->{helper}{ZM_AUTH_KEY} = $authKey;
+#  $hash->{helper}{ZM_AUTH_KEY} = $authKey;
   readingsSingleUpdate($hash, 'authHash', $authKey, 1);
   InternalTimer(gettimeofday() + 3600, "ZoneMinder_calcAuthHash", $hash);
 
@@ -512,7 +498,6 @@ sub ZoneMinder_DetailFn {
     return undef;
   }
 }
-
 
 sub ZoneMinder_Get {
   my ( $hash, $name, $opt, $args ) = @_;
