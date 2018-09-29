@@ -275,7 +275,7 @@ sub ZM_Monitor_createEventStreamUrl {
   }
 
   my $zmHost = $hash->{IODev}{helper}{ZM_HOST};
-  my $streamUrl = "http://$zmHost/";
+  my $streamUrl = "http://$zmHost";
   my $zmUsername = urlEncode($hash->{IODev}{helper}{ZM_USERNAME});
   my $zmPassword = urlEncode($hash->{IODev}{helper}{ZM_PASSWORD});
   my $authPart = "&user=$zmUsername&pass=$zmPassword";
@@ -327,15 +327,15 @@ sub ZM_Monitor_WriteEventStreamUrlToReading {
   my ( $hash, $streamUrl, $readingName, $authPart, $eventId ) = @_;
 
   my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
-  $streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
+  #$streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
 
   my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
-  my $imageUrl = $streamUrl."$zmPathZms?mode=single&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId".$authPart;
+  my $imageUrl = $streamUrl."/$zmPathZms?mode=single&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId".$authPart;
   my $imageReadingName = $readingName;
   $imageReadingName =~ s/Stream/Image/g;
   readingsBulkUpdate($hash, $imageReadingName, $imageUrl, 1);
 
-  $streamUrl = $streamUrl."$zmPathZms?source=event&mode=jpeg&event=$eventId&frame=1&scale=100&rate=100&maxfps=30".$authPart;
+  $streamUrl = $streamUrl."/$zmPathZms?source=event&mode=jpeg&event=$eventId&frame=1&scale=100&rate=100&maxfps=30".$authPart;
   readingsBulkUpdate($hash, $readingName, $streamUrl, 1);
 
 }
