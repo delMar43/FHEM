@@ -8,7 +8,7 @@ use Digest::MD5 qw(md5 md5_hex md5_base64);
 
 sub ZoneMinder_Initialize {
   my ($hash) = @_;
-
+  $hash->{NotifyOrderPrefix} = "70-";
   $hash->{Clients} = "ZM_Monitor";
 
   $hash->{GetFn}     = "ZoneMinder_Get";
@@ -20,8 +20,9 @@ sub ZoneMinder_Initialize {
   $hash->{FW_detailFn} = "ZoneMinder_DetailFn";
   $hash->{WriteFn}   = "ZoneMinder_Write";
   $hash->{ReadyFn}   = "ZoneMinder_Ready";
+#  $hash->{NotifyFn}  = "ZoneMinder_Notify";
 
-  $hash->{AttrList} = "pubStreamUrl " . $readingFnAttributes;
+  $hash->{AttrList} = "publicAddress webConsoleContext " . $readingFnAttributes;
   $hash->{MatchList} = { "1:ZM_Monitor" => "^.*" };
 
   Log3 '', 3, "ZoneMinder - Initialize done ...";
@@ -30,6 +31,7 @@ sub ZoneMinder_Initialize {
 sub ZoneMinder_Define {
   my ( $hash, $def ) = @_;
   my @a = split( "[ \t][ \t]*", $def );
+  $hash->{NOTIFYDEV} = "global";
 
   my $name   = $a[0];
   $hash->{NAME} = $name;
@@ -56,17 +58,6 @@ sub ZoneMinder_Define {
   if ($nrArgs == 5 || $nrArgs == 6) {
     $hash->{helper}{ZM_USERNAME} = $a[3];
     $hash->{helper}{ZM_PASSWORD} = $a[4];
-    if ($a[5]) {
-      $hash->{helper}{ZM_WEB_URL} = $a[5];
-    } else {
-      $hash->{helper}{ZM_WEB_URL} = "http://$a[2]/zm";
-    }
-
-    my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
-    my $zmUsername = urlEncode($hash->{helper}{ZM_USERNAME});
-    my $zmPassword = urlEncode($hash->{helper}{ZM_PASSWORD});
-    readingsSingleUpdate($hash, "ZMConsoleUrl", "$zmWebUrl/index.php?username=$zmUsername&password=$zmPassword&action=login&view=console", 0);
-    ZoneMinder_API_Login($hash, 'old');
   }
 
 #  Log3 $name, 3, "ZoneMinder ($name) - Define done ... module=$module, zmHost=$zmHost";
@@ -74,27 +65,107 @@ sub ZoneMinder_Define {
   DevIo_CloseDev($hash) if (DevIo_IsOpen($hash));
   DevIo_OpenDev($hash, 0, undef);
 
+  ZoneMinder_afterInitialized($hash);
+
   return undef;
 }
 
-sub ZoneMinder_API_Login {
-  my ($hash, $loginMethod) = @_;
+sub ZoneMinder_Notify {
+  my ($ownHash, $devHash) = @_;
+  my $ownName = $ownHash->{NAME}; # own name / hash
+
+  return "" if(IsDisabled($ownName)); # Return without any further action if the module is disabled
+
+  my $devName = $devHash->{NAME}; # Device that created the events
+
+  my $events = deviceEvents($devHash,1);
+  return if( !$events );
+
+  foreach my $event (@{$events}) {
+    $event = "" if(!defined($event));
+
+    if ($event eq 'INITIALIZED') {
+      ZoneMinder_afterInitialized($ownHash);
+    }
+  }
+
+  return undef;
+}
+
+sub ZoneMinder_afterInitialized {
+  my ($hash) = @_;
+
+  #write ZMConsoleUrl reading
+  my $zmWebUrl = ZoneMinder_getZmWebUrl($hash, 1);
+  my $zmUsername = urlEncode($hash->{helper}{ZM_USERNAME});
+  my $zmPassword = urlEncode($hash->{helper}{ZM_PASSWORD});
+  readingsSingleUpdate($hash, "ZMConsoleUrl", "$zmWebUrl/index.php?username=$zmUsername&password=$zmPassword&action=login&view=console", 0);
+  
+  ZoneMinder_API_Login($hash);
+
+  return undef;
+}
+
+# so far only used for generating the link to the ZM Web console
+# usePublic 0: zmHost, usePublic 1: publicAddress, usePublic undef: use public if publicAddress defined
+sub ZoneMinder_getZmWebUrl {
+  my ($hash, $usePublic) = @_;
+  my $name = $hash->{NAME};
+  
+  #use private or public LAN for Web access?
+  my $publicAddress = ZoneMinder_getPublicAddress($hash);
+  my $zmHost = '';
+  if ($publicAddress and $usePublic) {
+    $zmHost = $publicAddress;
+  } else {
+    $zmHost = $hash->{helper}{ZM_HOST};
+  }
+  $zmHost = "http://$zmHost";
+  $zmHost .= '/' if (not $zmHost =~ m/\/$/);
+
+  my $zmWebContext = $attr{$name}{zmWebContext};
+  if (not $zmWebContext) {
+    $zmWebContext = 'zm';
+  }
+  $zmHost .= $zmWebContext;
+  
+  return $zmHost;
+}
+
+sub ZoneMinder_getPublicAddress {
+  my ($hash) = @_;
   my $name = $hash->{NAME};
 
-  my $zmHost = $hash->{helper}{ZM_HOST};
+  return $attr{$name}{publicAddress};
+}
+
+# is built by using web-url, and adding /api
+sub ZoneMinder_getZmApiUrl {
+  my ($hash) = @_;
+  
+  #use private LAN for API access for a start
+  my $zmWebUrl = ZoneMinder_getZmWebUrl($hash, 0);
+  return "$zmWebUrl/api";
+}
+
+sub ZoneMinder_API_Login {
+  my ($hash) = @_;
+  my $name = $hash->{NAME};
+
   my $username = urlEncode($hash->{helper}{ZM_USERNAME});
   my $password = urlEncode($hash->{helper}{ZM_PASSWORD});
 
-  my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
-  my $loginUrl = '';
-  if ($loginMethod eq 'new') {
-    $loginUrl = "$zmWebUrl/api/login.json?user=$username&pass=$password";
-  } else {
-    $loginUrl = "$zmWebUrl/index.php?username=$username&password=$password&action=login&view=console";
-  }
-  $hash->{helper}{ZM_LOGIN_METHOD} = $loginMethod;
+#  my $loginUrl = '';
+#  if ($loginMethod eq 'new') {
+#    my $zmApiUrl = ZoneMinder_getApiUrl($hash);
+#    $loginUrl = "$zmApiUrl/login.json?user=$username&pass=$password";
+#  } else {
+    my $zmWebUrl = ZoneMinder_getZmWebUrl($hash);
+    my $loginUrl = "$zmWebUrl/index.php?username=$username&password=$password&action=login&view=console";
+#  }
+#  $hash->{helper}{ZM_LOGIN_METHOD} = $loginMethod;
 
-  Log3 $name, 4, "ZoneMinder ($name) - zmWebUrl: $zmWebUrl";
+  Log3 $name, 4, "ZoneMinder ($name) - loginUrl: $loginUrl";
   my $apiParam = {
     url => $loginUrl,
     method => "POST",
@@ -119,23 +190,23 @@ sub ZoneMinder_API_Login_Callback {
     Log3 $name, 0, "error while requesting ".$param->{url}." - $err";
     $hash->{APILoginError} = $err;
   } elsif($data ne "") {
-    my $loginMethod = $hash->{helper}{ZM_LOGIN_METHOD};
+#    my $loginMethod = $hash->{helper}{ZM_LOGIN_METHOD};
     if ($data =~ m/Invalid username or password/) {
       $hash->{APILoginError} = "Invalid username or password.";
-      ZoneMinder_API_Login( $hash, 'new' ) unless ($loginMethod eq 'new');
+#      ZoneMinder_API_Login( $hash, 'new' ) unless ($loginMethod eq 'new');
     } else {
       #Log3 $name, 5, "url ".$param->{url}." returned $param->{httpheader}";
       delete($defs{$name}{APILoginError});
       
       ZoneMinder_GetCookies($hash, $param->{httpheader});
 
-      my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
-      ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/host/getVersion.json", \&ZoneMinder_API_ReadHostInfo_Callback);
-      ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/host/getLoad.json", \&ZoneMinder_API_ReadHostLoad_Callback);
-      ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/configs.json", \&ZoneMinder_API_ReadConfig_Callback);
+      my $zmApiUrl = ZoneMinder_getZmApiUrl($hash);
+      ZoneMinder_SimpleGet($hash, "$zmApiUrl/host/getVersion.json", \&ZoneMinder_API_ReadHostInfo_Callback);
+      ZoneMinder_SimpleGet($hash, "$zmApiUrl/host/getLoad.json", \&ZoneMinder_API_ReadHostLoad_Callback);
+      ZoneMinder_SimpleGet($hash, "$zmApiUrl/configs.json", \&ZoneMinder_API_ReadConfig_Callback);
 #      ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/monitors.json", \&ZoneMinder_API_ReadMonitors_Callback);
 
-      InternalTimer(gettimeofday() + 3600, "ZoneMinder_API_Login", $hash, $loginMethod);
+      InternalTimer(gettimeofday() + 3600, "ZoneMinder_API_Login", $hash);
     }
   }
   
@@ -262,7 +333,6 @@ sub ZoneMinder_API_ReadMonitors_Callback {
   my ($param, $err, $data) = @_;
   my $hash = $param->{hash};
   my $name = $hash->{NAME};
-  my $zmHost = $hash->{helper}{ZM_HOST};
 
   my @monitors = split(/\{"Monitor"\:\{/, $data);
 
@@ -344,11 +414,9 @@ sub ZoneMinder_API_ChangeMonitorState {
   my ( $hash, $zmMonitorId, $zmFunction, $zmEnabled ) = @_;
   my $name = $hash->{NAME};
 
-  my $zmHost = $hash->{helper}{ZM_HOST};
-  my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
-
+  my $zmApiUrl = ZoneMinder_getZmApiUrl($hash);
   my $apiParam = {
-    url => "$zmWebUrl/api/monitors/$zmMonitorId.json",
+    url => "$zmApiUrl/monitors/$zmMonitorId.json",
     method => "POST",
     callback => \&ZoneMinder_API_ChangeMonitorState_Callback,
     hash => $hash,
@@ -445,7 +513,6 @@ sub ZoneMinder_calcAuthHash {
   my $authHash = $zmAuthHashSecret . $username . $hashedPassword . $curHour . $dayOfMonth . $curMonth . $curYear;
   my $authKey = md5_hex($authHash);
   
-#  $hash->{helper}{ZM_AUTH_KEY} = $authKey;
   readingsSingleUpdate($hash, 'authHash', $authKey, 1);
   InternalTimer(gettimeofday() + 3600, "ZoneMinder_calcAuthHash", $hash);
 
@@ -503,8 +570,8 @@ sub ZoneMinder_Get {
   my ( $hash, $name, $opt, $args ) = @_;
 
   if ("updateMonitors" eq $opt) {
-    my $zmWebUrl = $hash->{helper}{ZM_WEB_URL};
-    ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/monitors.json", \&ZoneMinder_API_ReadMonitors_Callback);
+    my $zmApiUrl = ZoneMinder_getZmApiUrl($hash);
+    ZoneMinder_SimpleGet($hash, "$zmApiUrl/monitors.json", \&ZoneMinder_API_ReadMonitors_Callback);
     return undef;
   } elsif ("calcAuthHash" eq $opt) {
     ZoneMinder_calcAuthHash($hash);

@@ -8,6 +8,7 @@ my @ZM_Alarms = qw( on off on-for-timer );
 
 sub ZM_Monitor_Initialize {
   my ($hash) = @_;
+  $hash->{NotifyOrderPrefix} = "71-";
 
   $hash->{GetFn}       = "ZM_Monitor_Get";
   $hash->{SetFn}       = "ZM_Monitor_Set";
@@ -77,7 +78,7 @@ sub ZM_Monitor_UpdateStreamUrls {
   readingsBeginUpdate($hash);
   ZM_Monitor_WriteStreamUrlToReading($hash, $streamUrl, 'streamUrl', $authPart);
 
-  my $pubStreamUrl = $attr{$ioDevName}{pubStreamUrl};
+  my $pubStreamUrl = $attr{$ioDevName}{publicAddress};
   if ($pubStreamUrl) {
     my $authHash = ReadingsVal($ioDevName, 'authHash', '');
     if ($authHash) { #if ZM_AUTH_KEY is defined, use the auth-hash. otherwise, use the previously defined username/pwd
@@ -86,6 +87,15 @@ sub ZM_Monitor_UpdateStreamUrls {
     ZM_Monitor_WriteStreamUrlToReading($hash, $pubStreamUrl, 'pubStreamUrl', $authPart);
   }
   readingsEndUpdate($hash, 1);
+
+  return undef;
+}
+
+# is build by using hosname, NPH_ZMS, monitorId, streamBufferSize, and auth
+sub ZM_Monitor_getZmStreamUrl {
+  my ($hash) = @_;
+
+  #use private or public LAN for streaming access?
 
   return undef;
 }
@@ -327,15 +337,15 @@ sub ZM_Monitor_WriteEventStreamUrlToReading {
   my ( $hash, $streamUrl, $readingName, $authPart, $eventId ) = @_;
 
   my $zmPathZms = $hash->{IODev}{helper}{ZM_PATH_ZMS};
-  #$streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
+  $streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
 
   my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
-  my $imageUrl = $streamUrl."/$zmPathZms?mode=single&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId".$authPart;
+  my $imageUrl = $streamUrl."$zmPathZms?mode=single&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId".$authPart;
   my $imageReadingName = $readingName;
   $imageReadingName =~ s/Stream/Image/g;
   readingsBulkUpdate($hash, $imageReadingName, $imageUrl, 1);
 
-  $streamUrl = $streamUrl."/$zmPathZms?source=event&mode=jpeg&event=$eventId&frame=1&scale=100&rate=100&maxfps=30".$authPart;
+  $streamUrl = $streamUrl."$zmPathZms?source=event&mode=jpeg&event=$eventId&frame=1&scale=100&rate=100&maxfps=30".$authPart;
   readingsBulkUpdate($hash, $readingName, $streamUrl, 1);
 
 }
