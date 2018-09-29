@@ -283,7 +283,7 @@ sub ZM_Monitor_createEventStreamUrl {
 
   my $pubStreamUrl = $attr{$ioDevName}{pubStreamUrl};
   if ($pubStreamUrl) {
-    my $authHash = ReadingsVal($ioDevName, 'ZM_AUTH_KEY', '');
+    my $authHash = ReadingsVal($ioDevName, 'authHash', '');
     if ($authHash) { #if ZM_AUTH_KEY is defined, use the auth-hash. otherwise, use the previously defined username/pwd
       $authPart = "&auth=$authHash";
     }
