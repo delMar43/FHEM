@@ -48,7 +48,7 @@ sub ZM_Monitor_Define {
   my $ioDevName = $hash->{IODev}{NAME};
   my $logDevAddress = $ioDevName.'_'.$zmMonitorId;
   # Adresse rückwärts dem Hash zuordnen (für ParseFn)
-  Log3 $name, 3, "ZM_Monitor ($name) - Logical device address: $logDevAddress";
+#  Log3 $name, 3, "ZM_Monitor ($name) - Logical device address: $logDevAddress";
   $modules{ZM_Monitor}{defptr}{$logDevAddress} = $hash;
   
 #  Log3 $name, 3, "ZM_Monitor ($name) - Define done ... module=$module, zmHost=$zmHost, zmMonitorId=$zmMonitorId";
@@ -294,8 +294,6 @@ sub ZM_Monitor_createEventStreamUrl {
   ZM_Monitor_WriteEventStreamUrlToReading($hash, $streamUrl, 'eventStreamUrl', $authPart, $eventId);
 
   my $pubStreamUrl = $attr{$ioDevName}{publicAddress};
-  my $name = $hash->{NAME};
-  Log3 $name, 0, "ZM_Monitor ($name) - ZM_Monitor_createEventStreamUrl pubStreamUrl: $pubStreamUrl";
   if ($pubStreamUrl) {
     my $authHash = ReadingsVal($ioDevName, 'authHash', '');
     if ($authHash) { #if ZM_AUTH_KEY is defined, use the auth-hash. otherwise, use the previously defined username/pwd

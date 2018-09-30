@@ -328,7 +328,7 @@ sub ZoneMinder_API_UpdateMonitors_Callback {
     if ( $monitorId =~ /^[0-9]+$/ ) {
       ZoneMinder_UpdateMonitorAttributes($hash, $monitorData, $monitorId);
     } else {
-      Log3 $name, 0, "Invalid monitorId: $monitorId";
+      Log3 $name, 0, "Invalid monitorId: $monitorId" unless ('itors' eq $monitorId);
     }
   }
 
