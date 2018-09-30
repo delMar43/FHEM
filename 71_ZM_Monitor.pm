@@ -293,7 +293,9 @@ sub ZM_Monitor_createEventStreamUrl {
   my $authPart = "&user=$zmUsername&pass=$zmPassword";
   ZM_Monitor_WriteEventStreamUrlToReading($hash, $streamUrl, 'eventStreamUrl', $authPart, $eventId);
 
-  my $pubStreamUrl = $attr{$ioDevName}{pubStreamUrl};
+  my $pubStreamUrl = $attr{$ioDevName}{publicAddress};
+  my $name = $hash->{NAME};
+  Log3 $name, 0, "ZM_Monitor ($name) - ZM_Monitor_createEventStreamUrl pubStreamUrl: $pubStreamUrl";
   if ($pubStreamUrl) {
     my $authHash = ReadingsVal($ioDevName, 'authHash', '');
     if ($authHash) { #if ZM_AUTH_KEY is defined, use the auth-hash. otherwise, use the previously defined username/pwd
@@ -321,9 +323,7 @@ sub ZM_Monitor_handleMonitorUpdate {
     my $bufferChanged = readingsBulkUpdateIfChanged($hash, 'streamReplayBuffer', $streamReplayBuffer);
     readingsEndUpdate($hash, 1);
 
-    if ($bufferChanged) {
-      ZM_Monitor_UpdateStreamUrls($hash);
-    }
+    ZM_Monitor_UpdateStreamUrls($hash);
 
     return $hash->{NAME};
 #  } else {

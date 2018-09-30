@@ -168,7 +168,7 @@ sub ZoneMinder_API_Login_Callback {
       ZoneMinder_GetCookies($hash, $param->{httpheader});
 
       my $isFirst = $hash->{helper}{apiInitialized};
-      if ($isFirst) {
+      if (not $isFirst) {
         $hash->{helper}{apiInitialized} = 1;
         my $zmApiUrl = ZoneMinder_getZmApiUrl($hash);
         ZoneMinder_SimpleGet($hash, "$zmApiUrl/host/getVersion.json", \&ZoneMinder_API_ReadHostInfo_Callback);
