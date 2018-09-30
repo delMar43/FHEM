@@ -20,9 +20,8 @@ sub ZoneMinder_Initialize {
   $hash->{FW_detailFn} = "ZoneMinder_DetailFn";
   $hash->{WriteFn}   = "ZoneMinder_Write";
   $hash->{ReadyFn}   = "ZoneMinder_Ready";
-#  $hash->{NotifyFn}  = "ZoneMinder_Notify";
 
-  $hash->{AttrList} = "publicAddress webConsoleContext " . $readingFnAttributes;
+  $hash->{AttrList} = "interval publicAddress webConsoleContext " . $readingFnAttributes;
   $hash->{MatchList} = { "1:ZM_Monitor" => "^.*" };
 
   Log3 '', 3, "ZoneMinder - Initialize done ...";
@@ -66,28 +65,6 @@ sub ZoneMinder_Define {
   DevIo_OpenDev($hash, 0, undef);
 
   ZoneMinder_afterInitialized($hash);
-
-  return undef;
-}
-
-sub ZoneMinder_Notify {
-  my ($ownHash, $devHash) = @_;
-  my $ownName = $ownHash->{NAME}; # own name / hash
-
-  return "" if(IsDisabled($ownName)); # Return without any further action if the module is disabled
-
-  my $devName = $devHash->{NAME}; # Device that created the events
-
-  my $events = deviceEvents($devHash,1);
-  return if( !$events );
-
-  foreach my $event (@{$events}) {
-    $event = "" if(!defined($event));
-
-    if ($event eq 'INITIALIZED') {
-      ZoneMinder_afterInitialized($ownHash);
-    }
-  }
 
   return undef;
 }
@@ -190,16 +167,27 @@ sub ZoneMinder_API_Login_Callback {
       
       ZoneMinder_GetCookies($hash, $param->{httpheader});
 
-      my $zmApiUrl = ZoneMinder_getZmApiUrl($hash);
-      ZoneMinder_SimpleGet($hash, "$zmApiUrl/host/getVersion.json", \&ZoneMinder_API_ReadHostInfo_Callback);
-      ZoneMinder_SimpleGet($hash, "$zmApiUrl/host/getLoad.json", \&ZoneMinder_API_ReadHostLoad_Callback);
-      ZoneMinder_SimpleGet($hash, "$zmApiUrl/configs.json", \&ZoneMinder_API_ReadConfig_Callback);
-
+      my $isFirst = $hash->{helper}{apiInitialized};
+      if ($isFirst) {
+        $hash->{helper}{apiInitialized} = 1;
+        my $zmApiUrl = ZoneMinder_getZmApiUrl($hash);
+        ZoneMinder_SimpleGet($hash, "$zmApiUrl/host/getVersion.json", \&ZoneMinder_API_ReadHostInfo_Callback);
+        ZoneMinder_SimpleGet($hash, "$zmApiUrl/configs.json", \&ZoneMinder_API_ReadConfig_Callback);
+        ZoneMinder_API_getLoad($hash);
+      }
+      
       InternalTimer(gettimeofday() + 3600, "ZoneMinder_API_Login", $hash);
     }
   }
   
   return undef;
+}
+
+sub ZoneMinder_API_getLoad {
+  my ($hash) = @_;
+
+  my $zmApiUrl = ZoneMinder_getZmApiUrl($hash);
+  ZoneMinder_SimpleGet($hash, "$zmApiUrl/host/getLoad.json", \&ZoneMinder_API_ReadHostLoad_Callback);
 }
 
 sub ZoneMinder_SimpleGet {
@@ -259,6 +247,8 @@ sub ZoneMinder_API_ReadHostLoad_Callback {
   } elsif($data ne "") {
     my $load = ZoneMinder_GetConfigArrayByKey($hash, $data, 'load');
     readingsSingleUpdate($hash, 'CPU_Load', $load, 1);
+
+    InternalTimer(gettimeofday() + 60, "ZoneMinder_API_getLoad", $hash);
   }
 
   return undef;
@@ -589,7 +579,7 @@ sub ZoneMinder_Get {
   if ("autocreateMonitors" eq $opt) {
     ZoneMinder_SimpleGet($hash, "$zmApiUrl/monitors.json", \&ZoneMinder_API_CreateMonitors_Callback);
     return undef;
-  } elsif ("updateMonitors" eq $opt) {
+  } elsif ("updateMonitorConfig" eq $opt) {
     ZoneMinder_SimpleGet($hash, "$zmApiUrl/monitors.json", \&ZoneMinder_API_UpdateMonitors_Callback);
     return undef;
   } elsif ("calcAuthHash" eq $opt) {
@@ -598,7 +588,7 @@ sub ZoneMinder_Get {
   }
 
 #  Log3 $name, 3, "ZoneMinder ($name) - Get done ...";
-  return "Unknown argument $opt, choose one of autocreateMonitors updateMonitors calcAuthHash";
+  return "Unknown argument $opt, choose one of autocreateMonitors updateMonitorConfig calcAuthHash";
 }
 
 sub ZoneMinder_Set {
