@@ -155,15 +155,8 @@ sub ZoneMinder_API_Login {
   my $username = urlEncode($hash->{helper}{ZM_USERNAME});
   my $password = urlEncode($hash->{helper}{ZM_PASSWORD});
 
-#  my $loginUrl = '';
-#  if ($loginMethod eq 'new') {
-#    my $zmApiUrl = ZoneMinder_getApiUrl($hash);
-#    $loginUrl = "$zmApiUrl/login.json?user=$username&pass=$password";
-#  } else {
-    my $zmWebUrl = ZoneMinder_getZmWebUrl($hash);
-    my $loginUrl = "$zmWebUrl/index.php?username=$username&password=$password&action=login&view=console";
-#  }
-#  $hash->{helper}{ZM_LOGIN_METHOD} = $loginMethod;
+  my $zmWebUrl = ZoneMinder_getZmWebUrl($hash);
+  my $loginUrl = "$zmWebUrl/index.php?username=$username&password=$password&action=login&view=console";
 
   Log3 $name, 4, "ZoneMinder ($name) - loginUrl: $loginUrl";
   my $apiParam = {
@@ -190,12 +183,9 @@ sub ZoneMinder_API_Login_Callback {
     Log3 $name, 0, "error while requesting ".$param->{url}." - $err";
     $hash->{APILoginError} = $err;
   } elsif($data ne "") {
-#    my $loginMethod = $hash->{helper}{ZM_LOGIN_METHOD};
     if ($data =~ m/Invalid username or password/) {
       $hash->{APILoginError} = "Invalid username or password.";
-#      ZoneMinder_API_Login( $hash, 'new' ) unless ($loginMethod eq 'new');
     } else {
-      #Log3 $name, 5, "url ".$param->{url}." returned $param->{httpheader}";
       delete($defs{$name}{APILoginError});
       
       ZoneMinder_GetCookies($hash, $param->{httpheader});
@@ -204,7 +194,6 @@ sub ZoneMinder_API_Login_Callback {
       ZoneMinder_SimpleGet($hash, "$zmApiUrl/host/getVersion.json", \&ZoneMinder_API_ReadHostInfo_Callback);
       ZoneMinder_SimpleGet($hash, "$zmApiUrl/host/getLoad.json", \&ZoneMinder_API_ReadHostLoad_Callback);
       ZoneMinder_SimpleGet($hash, "$zmApiUrl/configs.json", \&ZoneMinder_API_ReadConfig_Callback);
-#      ZoneMinder_SimpleGet($hash, "$zmWebUrl/api/monitors.json", \&ZoneMinder_API_ReadMonitors_Callback);
 
       InternalTimer(gettimeofday() + 3600, "ZoneMinder_API_Login", $hash);
     }
@@ -275,6 +264,7 @@ sub ZoneMinder_API_ReadHostLoad_Callback {
   return undef;
 }
 
+#this extracts ZM_PATH_ZMS and ZM_AUTH_HASH_SECRET from the ZoneMinder config
 sub ZoneMinder_API_ReadConfig_Callback {
   my ($param, $err, $data) = @_;
   my $hash = $param->{hash};
@@ -335,7 +325,7 @@ sub ZoneMinder_GetFromJson {
   return $searchResult;
 }
 
-sub ZoneMinder_API_ReadMonitors_Callback {
+sub ZoneMinder_API_UpdateMonitors_Callback {
   my ($param, $err, $data) = @_;
   my $hash = $param->{hash};
   my $name = $hash->{NAME};
@@ -352,7 +342,7 @@ sub ZoneMinder_API_ReadMonitors_Callback {
     }
   }
 
-  return undef;  
+  return undef;
 }
 
 sub ZoneMinder_UpdateMonitorAttributes {
@@ -365,6 +355,26 @@ sub ZoneMinder_UpdateMonitorAttributes {
   my $msg = "monitor:$monitorId|$function|$enabled|$streamReplayBuffer";
   
   my $dispatchResult = Dispatch($hash, $msg, undef);
+}
+
+sub ZoneMinder_API_CreateMonitors_Callback {
+  my ($param, $err, $data) = @_;
+  my $hash = $param->{hash};
+  my $name = $hash->{NAME};
+
+  my @monitors = split(/\{"Monitor"\:\{/, $data);
+
+  foreach my $monitorData (@monitors) {
+    my $monitorId = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Id');
+
+    if ( $monitorId =~ /^[0-9]+$/ ) {
+      my $dispatchResult = Dispatch($hash, "createMonitor:$monitorId", undef);
+    }
+  }
+  my $zmApiUrl = ZoneMinder_getZmApiUrl($hash);
+  ZoneMinder_SimpleGet($hash, "$zmApiUrl/monitors.json", \&ZoneMinder_API_UpdateMonitors_Callback);
+
+  return undef;
 }
 
 sub ZoneMinder_GetCookies {
@@ -575,9 +585,12 @@ sub ZoneMinder_DetailFn {
 sub ZoneMinder_Get {
   my ( $hash, $name, $opt, $args ) = @_;
 
-  if ("updateMonitors" eq $opt) {
-    my $zmApiUrl = ZoneMinder_getZmApiUrl($hash);
-    ZoneMinder_SimpleGet($hash, "$zmApiUrl/monitors.json", \&ZoneMinder_API_ReadMonitors_Callback);
+  my $zmApiUrl = ZoneMinder_getZmApiUrl($hash);
+  if ("autocreateMonitors" eq $opt) {
+    ZoneMinder_SimpleGet($hash, "$zmApiUrl/monitors.json", \&ZoneMinder_API_CreateMonitors_Callback);
+    return undef;
+  } elsif ("updateMonitors" eq $opt) {
+    ZoneMinder_SimpleGet($hash, "$zmApiUrl/monitors.json", \&ZoneMinder_API_UpdateMonitors_Callback);
     return undef;
   } elsif ("calcAuthHash" eq $opt) {
     ZoneMinder_calcAuthHash($hash);
@@ -585,7 +598,7 @@ sub ZoneMinder_Get {
   }
 
 #  Log3 $name, 3, "ZoneMinder ($name) - Get done ...";
-  return "Unknown argument $opt, choose one of updateMonitors calcAuthHash";
+  return "Unknown argument $opt, choose one of autocreateMonitors updateMonitors calcAuthHash";
 }
 
 sub ZoneMinder_Set {

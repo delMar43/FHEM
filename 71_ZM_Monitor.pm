@@ -223,6 +223,8 @@ sub ZM_Monitor_Parse {
   my $msgType = $msg[0];
   if ($msgType eq 'event') {
     return ZM_Monitor_handleEvent($io_hash, $msg[1]);
+  } elsif ($msgType eq 'createMonitor') {
+    return ZM_Monitor_handleMonitorCreation($io_hash, $msg[1]);
   } elsif ($msgType eq 'monitor') {
     return ZM_Monitor_handleMonitorUpdate($io_hash, $msg[1]);
   } else {
@@ -323,6 +325,25 @@ sub ZM_Monitor_handleMonitorUpdate {
       ZM_Monitor_UpdateStreamUrls($hash);
     }
 
+    return $hash->{NAME};
+#  } else {
+#    my $autocreate = "UNDEFINED ZM_Monitor_$logDevAddress ZM_Monitor $zmMonitorId";
+#    Log3 $io_hash, 5, "logical device with address $logDevAddress not found. returning autocreate: $autocreate";
+#    return $autocreate;
+  }
+
+  return undef;
+}
+
+sub ZM_Monitor_handleMonitorCreation {
+  my ( $io_hash, $message ) = @_;
+
+  my $ioName = $io_hash->{NAME};
+  my @msgTokens = split(/\|/, $message); #$message = "$monitorId";
+  my $zmMonitorId = $msgTokens[0];
+  my $logDevAddress = $ioName.'_'.$zmMonitorId;
+
+  if ( my $hash = $modules{ZM_Monitor}{defptr}{$logDevAddress} ) {
     return $hash->{NAME};
   } else {
     my $autocreate = "UNDEFINED ZM_Monitor_$logDevAddress ZM_Monitor $zmMonitorId";
