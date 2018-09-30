@@ -268,7 +268,7 @@ sub ZoneMinder_API_ReadHostLoad_Callback {
     Log3 $name, 0, "error while requesting ".$param->{url}." - $err";
     readingsSingleUpdate($hash, 'CPU_Load', 'error', 0);
   } elsif($data ne "") {
-    my $load = ZoneMinder_GetConfigValueByKey($hash, $data, 'load');
+    my $load = ZoneMinder_GetConfigArrayByKey($hash, $data, 'load');
     readingsSingleUpdate($hash, 'CPU_Load', $load, 1);
   }
 
@@ -302,17 +302,23 @@ sub ZoneMinder_API_ReadConfig_Callback {
 sub ZoneMinder_GetConfigValueByKey {
   my ($hash, $config, $key) = @_;
   my $searchString = '"'.$key.'":"';
-  return ZoneMinder_GetFromJson($hash, $config, $searchString);
+  return ZoneMinder_GetFromJson($hash, $config, $searchString, '"');
+}
+
+sub ZoneMinder_GetConfigArrayByKey {
+  my ($hash, $config, $key) = @_;
+  my $searchString = '"'.$key.'":[';
+  return ZoneMinder_GetFromJson($hash, $config, $searchString, ']');
 }
 
 sub ZoneMinder_GetConfigValueByName {
   my ($hash, $config, $key) = @_;
   my $searchString = '"Name":"'.$key.'","Value":"';
-  return ZoneMinder_GetFromJson($hash, $config, $searchString);
+  return ZoneMinder_GetFromJson($hash, $config, $searchString, '"');
 }
 
 sub ZoneMinder_GetFromJson {
-  my ($hash, $config, $searchString) = @_;
+  my ($hash, $config, $searchString, $endChar) = @_;
   my $name = $hash->{NAME};
 
 #  Log3 $name, 5, "json: $config";
@@ -320,7 +326,7 @@ sub ZoneMinder_GetFromJson {
   my $startIdx = index($config, $searchString);
   Log3 $name, 5, "$searchString found at $startIdx";
   $startIdx += $searchLength;
-  my $endIdx = index($config, '"', $startIdx);
+  my $endIdx = index($config, $endChar, $startIdx);
   my $frame = $endIdx - $startIdx;
   my $searchResult = substr $config, $startIdx, $frame;
 

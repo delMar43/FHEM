@@ -340,7 +340,7 @@ sub ZM_Monitor_WriteEventStreamUrlToReading {
   $streamUrl = $streamUrl."/" if (not $streamUrl =~ m/\/$/);
 
   my $zmMonitorId = $hash->{helper}{ZM_MONITOR_ID};
-  my $imageUrl = $streamUrl."$zmPathZms?mode=single&scale=100&maxfps=30&buffer=1000&monitor=$zmMonitorId".$authPart;
+  my $imageUrl = $streamUrl."$zmPathZms?mode=single&scale=100&monitor=$zmMonitorId".$authPart;
   my $imageReadingName = $readingName;
   $imageReadingName =~ s/Stream/Image/g;
   readingsBulkUpdate($hash, $imageReadingName, $imageUrl, 1);
