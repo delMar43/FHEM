@@ -72,12 +72,6 @@ sub ZoneMinder_Define {
 sub ZoneMinder_afterInitialized {
   my ($hash) = @_;
 
-  #write ZMConsoleUrl reading
-  my $zmWebUrl = ZoneMinder_getZmWebUrl($hash, 1);
-  my $zmUsername = urlEncode($hash->{helper}{ZM_USERNAME});
-  my $zmPassword = urlEncode($hash->{helper}{ZM_PASSWORD});
-  readingsSingleUpdate($hash, "zmConsoleUrl", "$zmWebUrl/index.php?username=$zmUsername&password=$zmPassword&action=login&view=console", 0);
-  
   ZoneMinder_API_Login($hash);
 
   return undef;
@@ -92,6 +86,7 @@ sub ZoneMinder_getZmWebUrl {
   #use private or public LAN for Web access?
   my $publicAddress = ZoneMinder_getPublicAddress($hash);
   my $zmHost = '';
+  Log3 $name, 0, "ZoneMinder ($name) - publicAddress: $publicAddress, usePublic: $usePublic";
   if ($publicAddress and $usePublic) {
     $zmHost = $publicAddress;
   } else {
@@ -564,7 +559,12 @@ sub ZoneMinder_DetailFn {
   my ( $FW_wname, $deviceName, $FW_room ) = @_;
 
   my $hash = $defs{$deviceName};
-  my $zmConsoleUrl = ReadingsVal($deviceName, "ZMConsoleUrl", undef);
+
+  my $zmWebUrl = ZoneMinder_getZmWebUrl($hash, 1);
+  my $zmUsername = urlEncode($hash->{helper}{ZM_USERNAME});
+  my $zmPassword = urlEncode($hash->{helper}{ZM_PASSWORD});
+  my $zmConsoleUrl = "$zmWebUrl/index.php?username=$zmUsername&password=$zmPassword&action=login&view=console";
+
   if ($zmConsoleUrl) {
     return "<div><a href='$zmConsoleUrl' target='_blank'>Go to ZoneMinder console</a></div>";
   } else {
