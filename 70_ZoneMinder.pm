@@ -86,7 +86,7 @@ sub ZoneMinder_getZmWebUrl {
   #use private or public LAN for Web access?
   my $publicAddress = ZoneMinder_getPublicAddress($hash);
   my $zmHost = '';
-  Log3 $name, 0, "ZoneMinder ($name) - publicAddress: $publicAddress, usePublic: $usePublic";
+#  Log3 $name, 0, "ZoneMinder ($name) - publicAddress: $publicAddress, usePublic: $usePublic";
   if ($publicAddress and $usePublic) {
     $zmHost = $publicAddress;
   } else {
