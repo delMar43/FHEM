@@ -95,7 +95,7 @@ sub ZoneMinder_getZmWebUrl {
   $zmHost = "http://$zmHost";
   $zmHost .= '/' if (not $zmHost =~ m/\/$/);
 
-  my $zmWebContext = $attr{$name}{zmWebContext};
+  my $zmWebContext = $attr{$name}{webConsoleContext};
   if (not $zmWebContext) {
     $zmWebContext = 'zm';
   }
