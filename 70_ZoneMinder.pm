@@ -76,7 +76,7 @@ sub ZoneMinder_afterInitialized {
   my $zmWebUrl = ZoneMinder_getZmWebUrl($hash, 1);
   my $zmUsername = urlEncode($hash->{helper}{ZM_USERNAME});
   my $zmPassword = urlEncode($hash->{helper}{ZM_PASSWORD});
-  readingsSingleUpdate($hash, "ZMConsoleUrl", "$zmWebUrl/index.php?username=$zmUsername&password=$zmPassword&action=login&view=console", 0);
+  readingsSingleUpdate($hash, "zmConsoleUrl", "$zmWebUrl/index.php?username=$zmUsername&password=$zmPassword&action=login&view=console", 0);
   
   ZoneMinder_API_Login($hash);
 
@@ -167,18 +167,18 @@ sub ZoneMinder_API_Login_Callback {
       
       ZoneMinder_GetCookies($hash, $param->{httpheader});
 
-      my $isFirst = $hash->{helper}{apiInitialized};
-      if (not $isFirst) {
+      my $isFirst = !$hash->{helper}{apiInitialized};
+      if ($isFirst) {
         $hash->{helper}{apiInitialized} = 1;
         my $zmApiUrl = ZoneMinder_getZmApiUrl($hash);
         ZoneMinder_SimpleGet($hash, "$zmApiUrl/host/getVersion.json", \&ZoneMinder_API_ReadHostInfo_Callback);
         ZoneMinder_SimpleGet($hash, "$zmApiUrl/configs.json", \&ZoneMinder_API_ReadConfig_Callback);
         ZoneMinder_API_getLoad($hash);
       }
-      
-      InternalTimer(gettimeofday() + 3600, "ZoneMinder_API_Login", $hash);
     }
   }
+
+  InternalTimer(gettimeofday() + 3600, "ZoneMinder_API_Login", $hash);
   
   return undef;
 }
@@ -607,10 +607,11 @@ sub ZoneMinder_Ready {
     my $err = DevIo_OpenDev($hash, 1, undef ); #if success, $err is undef
     if (not $err) {
       Log3 $name, 3, "ZoneMinder ($name) - reconnect to ZoneMinder successful";
+      return 1;
     } else {
       Log3 $name, 0, "ZoneMinder ($name) - reconnect to ZoneMinder failed: $err";
+      return $err;
     }
-    return $err;
   }
 
   # This is relevant for Windows/USB only
@@ -621,8 +622,6 @@ sub ZoneMinder_Ready {
   }
 }
 
-# Eval-Rückgabewert für erfolgreiches
-# Laden des Moduls
 1;
 
 
