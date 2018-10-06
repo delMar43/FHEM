@@ -629,15 +629,71 @@ sub ZoneMinder_Ready {
 
 =pod
 =item [helper|device|command]
-=item summary Kurzbeschreibung in Englisch was ZoneMinder steuert/unterstützt
-=item summary_DE Kurzbeschreibung in Deutsch was ZoneMinder steuert/unterstützt
+=item summary Receive and send events between FHEM and ZoneMinder, change Monitor operation modes based on time or events.
+=item summary_DE Senden und Empfangen von Events zwischen FHEM und ZoneMinder, Verändern der Kameraeinstellungen, basierend auf Zeit oder Ereignissen.
 
 =begin html
- Englische Commandref in HTML
+<a name="ZoneMinder"></a>
+<h3>ZoneMinder</h3>
+
+<a name="ZoneMinderdefine"></a>
+  <b>Define</b>
+  <ul>
+    <code>define &lt;name&gt; ZoneMinder  &lt;ZM-Host&gt; [&lt;username&gt; &lt;password&gt;]</code>
+    <br><br>
+    Defines a ZoneMinder device at the given host address. This allows you to exchange events between ZoneMinder and FHEM.
+    Also providing <code>username</code> and <code>password</code> provides access to ZoneMinder API and more functionality.
+    <br>
+    Example:
+    <ul>
+      <code>define zm ZoneMinder 10.0.0.100</code><br>
+      <code>define zm ZoneMinder 10.0.0.100 fhemApiUser fhemApiPass</code>
+    </ul>
+    <br>
+  </ul>
+  <br><br>
+
+  <a name="ZoneMinderget"></a>
+  <b>Get</b>
+  <ul>
+    <li><code>autocreateMonitors</code><br>Queries the ZoneMinder API and autocreates all ZM_Monitor devices that belong to that installation.
+    </li>
+    <li><code>updateMonitorConfig</code><br>Queries the ZoneMinder API and updates the Readings of ZM_Monitor devices (monitorFunction, motionDetectionEnabled, ...)
+    </li>
+    <li><code>calcAuthHash</code><br>Calculates a fresh auth hash. Please note that the hash only changes with every full hour. So, calling this doesn't necessarily change any Readings, depending on the age of the current hash.
+    </li>
+  </ul>
+
+  <br><br>
+  <a name="ZoneMinderattr"></a>
+  <b>Attributes</b>
+  <br><br>
+  <ul>
+    <li><code>publicAddress &lt;address&gt;</code><br>This configures public accessibility of your LAN (eg your ddns address). Define a valid URL here, eg <code>https://my.own.domain:2344</code></li>
+    <li><code>webConsoleContext &lt;path&gt;</code><br>If not set, this defaults to <code>/zm</code>. This is used for building the URL to the ZoneMinder web console.</li> 
+  </ul>
+
+  <br><br>
+  
+  <a name="ZoneMinderreadings"></a>
+  <b>Readings</b>
+  <br><br>
+  <ul>
+    <li>CPU_Load<br/>The CPU load of the ZoneMinder host. Provides 1, 5 and 15 minutes interval.</li>
+    <li>authHash<br/>The auth hash that allows access to Stream URLs without requiring username or password.</li>
+    <li>state<br/>The current connection state to the ZoneMinder Trigger Port (6802 per default)</li>
+  </ul>
+  
+  <br><br>
+
+
+
 =end html
 
 =begin html_DE
- Deustche Commandref in HTML
+<a name="ZoneMinder"></a>
+<h3>ZoneMinder</h3>
+
 =end html
 
 # Ende der Commandref
