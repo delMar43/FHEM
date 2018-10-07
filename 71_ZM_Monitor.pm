@@ -408,16 +408,64 @@ sub ZM_Monitor_Notify {
 # Beginn der Commandref
 
 =pod
-=item [helper|device|command]
-=item summary Kurzbeschreibung in Englisch was ZoneMinder steuert/unterstützt
-=item summary_DE Kurzbeschreibung in Deutsch was ZoneMinder steuert/unterstützt
+=item device
+=item summary Logical device to change Monitor operation modes in ZoneMinder
+=item summary_DE Logisches Modul zum Verändern der Kameraeinstellungen in ZoneMinder
 
 =begin html
- Englische Commandref in HTML
-=end html
 
-=begin html_DE
- Deustche Commandref in HTML
+<a name="ZM_Monitor"></a>
+<h3>ZM_Monitor</h3>
+
+<a name="ZM_Monitordefine"></a>
+  <b>Define</b>
+  <ul>
+    <code>define &lt;name&gt; ZM_Monitor  &lt;ZM-Monitor ID&gt;</code>
+    <br><br>
+    This is usually called by autocreate and triggered by the ZoneMinder IODevice.
+    <br>
+  </ul>
+  <br><br>
+
+  <a name="ZM_Monitorset"></a>
+  <b>Set</b>
+  <ul>
+    <li><code>alarmState</code><br>Puts a monitor into alarm state or out of alarm state via the ZoneMinder trigger port.</li>
+    <li><code>monitorFunction</code><br>Sets the operating mode of a Monitor in ZoneMinder via the ZoneMinder API.</li>
+    <li><code>motionDetectionEnabled</code><br>Enables or disables monitor detection of a monitor via ZoneMinder API.</li>
+    <li><code>text</code><br/>Allows you to set a text for a Timestamp's <code>%Q</code> portion in ZoneMinder via the ZoneMinder trigger port.</li>
+  </ul>
+
+  <br><br>
+  <a name="ZM_Monitorattr"></a>
+  <b>Attributes</b>
+  <br><br>
+  <ul>
+    <li><code>showLiveStreamInDetail</code><br/>If set to <code>1</code>, a live-stream of the current monitor will be shown on top of the FHEMWEB detail page.</li>
+  </ul>
+
+  <br><br>
+
+  <a name="ZM_Monitorreadings"></a>
+  <b>Readings</b>
+  <br><br>
+  <ul>
+    <li><code>alert</code><br/>The alert state.</li>
+    <li><code>eventImageUrl</code><br/>Link to the first image of the latest event recording, based on the ZM-Host parameter used in the device definition.</li>
+    <li><code>eventStreamUrl</code><br/>Link to the latest event recording, based on the ZM-Host parameter used in the device definition.</li>
+    <li><code>lastEventId</code><br/>ID of the latest event in ZoneMinder.</li>
+    <li><code>lastEventTimestamp</code><br/>Timestamp of the latest event from ZoneMinder.</li>
+    <li><code>monitorFunction</code><br/>Current operation mode of the monitor.</li>
+    <li><code>motionDetectionEnabled</code><br/>Equals the 'enabled' setting in ZoneMinder. Allows you to put the monitor into a more passive state (according to ZoneMinder documentation).</li>
+    <li><code>pubEventImageUrl</code><br/>Link to the first image of the latest event recording, based on the <code>publicAddress</code> attribute used in the ZoneMinder device.</li>
+    <li><code>pubEventStreamUrl</code><br/>Link to the latest event recording, based on the <code>publicAddress</code> attribute used in the ZoneMinder device.</li>
+    <li><code>pubImageUrl</code><br/>Link to the current live image, based on the <code>publicAddress</code> attribute used in the ZoneMinder device.</li>
+    <li><code>pubStreamUrl</code>Link to the live-stream, based on the <code>publicAddress</code> attribute used in the ZoneMinder device.<br/></li>
+    <li><code>streamReplayBuffer</code><br/>Taken from the ZoneMinder configuration. Used for the <code>buffer</code> parameter of stream URLs.</li>
+    <li><code>streamUrl</code><br/>Link to the live-stream, based on the ZM-Host parameter used in the device definition.</li>
+
+  </ul>
+
 =end html
 
 # Ende der Commandref

@@ -628,11 +628,12 @@ sub ZoneMinder_Ready {
 # Beginn der Commandref
 
 =pod
-=item [helper|device|command]
+=item device
 =item summary Receive and send events between FHEM and ZoneMinder, change Monitor operation modes based on time or events.
 =item summary_DE Senden und Empfangen von Events zwischen FHEM und ZoneMinder, Verändern der Kameraeinstellungen, basierend auf Zeit oder Ereignissen.
 
 =begin html
+
 <a name="ZoneMinder"></a>
 <h3>ZoneMinder</h3>
 
@@ -684,15 +685,6 @@ sub ZoneMinder_Ready {
     <li>state<br/>The current connection state to the ZoneMinder Trigger Port (6802 per default)</li>
   </ul>
   
-  <br><br>
-
-
-
-=end html
-
-=begin html_DE
-<a name="ZoneMinder"></a>
-<h3>ZoneMinder</h3>
 
 =end html
 
