@@ -12,6 +12,7 @@ sub TA_CMI_JSON_ParseHttpResponse;
 sub TA_CMI_JSON_Get;
 sub TA_CMI_JSON_extractDeviceName;
 sub TA_CMI_JSON_extractVersion;
+sub TA_CMI_JSON_extractReadings;
 
 sub TA_CMI_JSON_Initialize($) {
   my ($hash) = @_;
@@ -125,7 +126,9 @@ sub TA_CMI_JSON_ParseHttpResponse($) {
 #     Log3 $name, 3, "TA_CMI_JSON ($name) - Device: $keyValues->{Header_Device}";
   }
 
-  InternalTimer( gettimeofday() + $hash->{INTERVAL}, "TA_CMI_JSON_GetStatus", $hash, 0 );
+  my $functionName = "TA_CMI_JSON_GetStatus";
+  RemoveInternalTimer($hash, $functionName);
+  InternalTimer( gettimeofday() + $hash->{INTERVAL}, $functionName, $hash, 0 );
 
   return undef;
 }
