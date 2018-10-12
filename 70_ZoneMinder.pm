@@ -1,4 +1,36 @@
+##############################################################################
+#
+#     70_ZoneMinder.pm
+#
+#     This file is part of Fhem.
+#
+#     Fhem is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 2 of the License, or
+#     (at your option) any later version.
+#
+#     Fhem is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with Fhem.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
+#  
+# ZoneMinder (c) Martin Gutenbrunner / https://github.com/delmar43/FHEM
+#
+# This module enables FHEM to interact with ZoneMinder surveillance system (see https://zoneminder.com)
+#
+# Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,91847.0.html
+#
+# $Id: 70_ZoneMinder.pm 17479 2018-10-07 16:53:23Z delmar $
+#
+##############################################################################
+
 package main;
+
 use strict;
 use warnings;
 use HttpUtils;
@@ -59,8 +91,6 @@ sub ZoneMinder_Define {
     $hash->{helper}{ZM_PASSWORD} = $a[4];
   }
 
-#  Log3 $name, 3, "ZoneMinder ($name) - Define done ... module=$module, zmHost=$zmHost";
-
   DevIo_CloseDev($hash) if (DevIo_IsOpen($hash));
   DevIo_OpenDev($hash, 0, undef);
 
@@ -86,13 +116,13 @@ sub ZoneMinder_getZmWebUrl {
   #use private or public LAN for Web access?
   my $publicAddress = ZoneMinder_getPublicAddress($hash);
   my $zmHost = '';
-#  Log3 $name, 0, "ZoneMinder ($name) - publicAddress: $publicAddress, usePublic: $usePublic";
+
   if ($publicAddress and $usePublic) {
     $zmHost = $publicAddress;
   } else {
     $zmHost = $hash->{helper}{ZM_HOST};
+    $zmHost = "http://$zmHost";
   }
-  $zmHost = "http://$zmHost";
   $zmHost .= '/' if (not $zmHost =~ m/\/$/);
 
   my $zmWebContext = $attr{$name}{webConsoleContext};
@@ -629,8 +659,8 @@ sub ZoneMinder_Ready {
 
 =pod
 =item device
-=item summary Receive and send events between FHEM and ZoneMinder, change Monitor operation modes based on time or events.
-=item summary_DE Senden und Empfangen von Events zwischen FHEM und ZoneMinder, Verändern der Kameraeinstellungen, basierend auf Zeit oder Ereignissen.
+=item summary Maintain ZoneMinder events and monitor operation modes in FHEM
+=item summary_DE ZoneMinder events und Monitor Konfiguration in FHEM warten
 
 =begin html
 
