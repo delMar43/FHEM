@@ -150,6 +150,8 @@ sub TA_CMI_JSON_extractReadings($$$) {
 
   for my $i (0 .. (@readingsArray-1)) {
     my ( $idx, $readingName ) = split(/\:/, $readingsArray[$i]);
+    $readingName = makeReadingName($readingName);
+
     my $jsonKey = 'Data_'.$id.'_'.$idx.'_Value_Value';
     my $readingValue = $keyValues->{$jsonKey};
     Log3 $name, 5, "readingName: $readingName, key: $jsonKey, value: $readingValue";
