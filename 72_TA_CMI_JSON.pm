@@ -2,7 +2,6 @@ package main;
 use strict;
 use warnings;
 use HttpUtils;
-use Encode qw(encode_utf8 decode_utf8);
 
 sub TA_CMI_JSON_Initialize;
 sub TA_CMI_JSON_Define;
