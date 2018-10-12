@@ -47,7 +47,7 @@ sub TA_CMI_JSON_Define($$) {
   $hash->{QUERYPARAM} = $queryParams;
   $hash->{INTERVAL} = AttrVal( $name, "interval", "70" );
   
-  Log3 $name, 3, "TA_CMI_JSON ($name) - Define done ... module=$module, CMI-URL=$cmiUrl, nodeId=$nodeId, queryParams=$queryParams";
+  Log3 $name, 5, "TA_CMI_JSON ($name) - Define done ... module=$module, CMI-URL=$cmiUrl, nodeId=$nodeId, queryParams=$queryParams";
 
   readingsSingleUpdate($hash, 'state', 'defined', 1);
 
@@ -98,7 +98,7 @@ sub TA_CMI_JSON_ParseHttpResponse($) {
   my $return;
 
   if($err ne "") {
-     Log3 $name, 3, "error while requesting ".$param->{url}." - $err";                                               # Eintrag fürs Log
+     Log3 $name, 0, "error while requesting ".$param->{url}." - $err";                                               # Eintrag fürs Log
 #     readingsSingleUpdate($hash, "fullResponse", "ERROR", 0);                                                        # Readings erzeugen
       readingsBeginUpdate($hash);
       readingsBulkUpdate($hash, 'state', 'ERROR', 0);
@@ -145,14 +145,14 @@ sub TA_CMI_JSON_extractReadings($$$) {
   my $name = $hash->{NAME};
 
   my $readingNames = AttrVal($name, "readingNames$id", '');
-  Log3 $name, 3, 'readingNames'.$id.": $readingNames";
+  Log3 $name, 5, 'readingNames'.$id.": $readingNames";
   my @readingsArray = split(/ /, $readingNames); #1:T.Kollektor 5:T.Vorlauf
 
   for my $i (0 .. (@readingsArray-1)) {
     my ( $idx, $readingName ) = split(/\:/, $readingsArray[$i]);
     my $jsonKey = 'Data_'.$id.'_'.$idx.'_Value_Value';
     my $readingValue = $keyValues->{$jsonKey};
-    Log3 $name, 3, "readingName: $readingName, key: $jsonKey, value: $readingValue";
+    Log3 $name, 5, "readingName: $readingName, key: $jsonKey, value: $readingValue";
     
     readingsBulkUpdateIfChanged($hash, $readingName, $readingValue);
   }
