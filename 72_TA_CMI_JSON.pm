@@ -135,12 +135,44 @@ sub TA_CMI_JSON_ParseHttpResponse($) {
 
 sub TA_CMI_JSON_extractDeviceName($) {
   my ($input) = @_;
-  return $input;
+
+  my $result;
+  if ($input eq '80') {
+    $result = 'UVR1611';
+  } elsif ($input eq '87') {
+    $result = 'UVR16x2';
+  } elsif ($input eq '88') {
+    $result = 'RSM610';
+  } elsif ($input eq '89') {
+    $result = 'CAN-I/O45';
+  } elsif ($input eq '8B') {
+    $result = 'CAN-EZ2';
+  } elsif ($input eq '8C') {
+    $result = 'CAN-MTx2';
+  } elsif ($input eq '8D') {
+    $result = 'CAN-BC2';
+  } else {
+    $result = "Unknown: $input";
+  }
+
+  return $result;
 }
 
 sub TA_CMI_JSON_extractVersion($) {
   my ($input) = @_;
-  return $input;
+  
+  my $result;
+  if ($input == 1) {
+    $result = '1.25.2 2016-12-12';
+  } elsif ($input == 2) {
+    $result = '1.26.1 2017-02-24';
+  } elsif ($input == 3) {
+    $result = '1.28.0 2017-11-09';
+  } else {
+    $result = "unknown: $input";
+  }
+  
+  return $result;
 }
 
 sub TA_CMI_JSON_extractReadings($$$) {
