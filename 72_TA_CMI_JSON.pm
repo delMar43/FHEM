@@ -259,7 +259,8 @@ sub TA_CMI_JSON_Get ($@) {
 =item summary_DE Werte vom CMI der Firma Technische Alternative auslesen.
 
 =begin html
- <a name="TA_CMI_JSON"></a>
+
+<a name="TA_CMI_JSON"></a>
 <h3>TA_CMI_JSON</h3>
 <a name="TA_CMI_JSONdefine"></a>
   <b>Define</b>
@@ -307,7 +308,8 @@ sub TA_CMI_JSON_Get ($@) {
 =end html
 
 =begin html_DE
- <a name="TA_CMI_JSON"></a>
+
+<a name="TA_CMI_JSON"></a>
 <h3>TA_CMI_JSON</h3>
 Weitere Informationen zu diesem Modul im <a href="https://wiki.fhem.de/wiki/UVR16x2">FHEM-Wiki</a>.
 <a name="TA_CMI_JSONdefine"></a>
