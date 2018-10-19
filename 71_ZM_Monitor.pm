@@ -1,3 +1,35 @@
+##############################################################################
+#
+#     71_ZM_Monitor.pm
+#
+#     This file is part of Fhem.
+#
+#     Fhem is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 2 of the License, or
+#     (at your option) any later version.
+#
+#     Fhem is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with Fhem.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
+#
+# ZoneMinder (c) Martin Gutenbrunner / https://github.com/delmar43/FHEM
+#
+# This module is designed to work as a logical device in connection with 70_ZoneMinder
+# as a physical device.
+#
+# Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,91847.0.html
+#
+# $Id: 71_ZM_Monitor.pm 17479 2018-10-07 16:53:23Z delmar $
+#
+##############################################################################
+
 package main;
 use strict;
 use warnings;
