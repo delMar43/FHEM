@@ -25,6 +25,8 @@
 # Supported devices are UVR1611, UVR16x2, RSM610, CAN-I/O45, CAN-EZ2, CAN-MTx2,
 # and CAN-BC2 by Technische Alternative https://www.ta.co.at/
 #
+# Information in the Wiki: https://wiki.fhem.de/wiki/UVR16x2
+#
 # Discussed in FHEM Forum:
 # * https://forum.fhem.de/index.php/topic,41439.0.html
 # * https://forum.fhem.de/index.php/topic,13534.45.html
