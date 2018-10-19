@@ -1,3 +1,38 @@
+##############################################################################
+#
+#     72_TA_CMI_JSON.pm
+#
+#     This file is part of Fhem.
+#
+#     Fhem is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 2 of the License, or
+#     (at your option) any later version.
+#
+#     Fhem is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+#
+#     You should have received a copy of the GNU General Public License
+#     along with Fhem.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
+#  
+# TA_CMI_JSON (c) Martin Gutenbrunner / https://github.com/delmar43/FHEM
+#
+# This module queries the CMI JSON API and allows to map values to readings.
+# Supported devices are UVR1611, UVR16x2, RSM610, CAN-I/O45, CAN-EZ2, CAN-MTx2,
+# and CAN-BC2 by Technische Alternative https://www.ta.co.at/
+#
+# Discussed in FHEM Forum:
+# * https://forum.fhem.de/index.php/topic,41439.0.html
+# * https://forum.fhem.de/index.php/topic,13534.45.html
+#
+# $Id:
+#
+##############################################################################
+
 package main;
 use strict;
 use warnings;
@@ -219,16 +254,104 @@ sub TA_CMI_JSON_Get ($@) {
 # Beginn der Commandref
 
 =pod
-=item [helper|device|command]
-=item summary Kurzbeschreibung in Englisch was TA_COE_CMI steuert/unterstützt
-=item summary_DE Kurzbeschreibung in Deutsch was TA_COE_CMI steuert/unterstützt
+=item [device]
+=item summary Reads values from the Technische Alternative CMI device
+=item summary_DE Werte vom CMI der Firma Technische Alternative auslesen.
 
 =begin html
- Englische Commandref in HTML
+ <a name="TA_CMI_JSON"></a>
+<h3>TA_CMI_JSON</h3>
+<a name="TA_CMI_JSONdefine"></a>
+  <b>Define</b>
+  <ul>
+    <code>define &lt;name&gt; TA_CMI_JSON  &lt;IP&gt; &lt;CAN-Node-Id&gt; &lt;Query-Params&gt;</code>
+    <br><br>
+    Defines a device that receives values from the CMI at the given IP for the CAN-device with the given CAN-Node-Id.<br/>
+    Query-Param defines, which values you want to read. Allowed values are I,O,D.
+    <br>
+    Example:
+    <ul>
+      <code>defmod cmi TA_CMI_JSON 192.168.4.250 1 I,O,D</code><br>
+    </ul>
+    <br>
+    It's mandatory to define which values should be mapped to readings.<br/>
+    Only mapped values will not be written to readings. (see <a href="#TA_CMI_JSONattr">Attributes</a> for details)
+  </ul>
+  <br><br>
+  
+    <a name="TA_CMI_JSONget"></a>
+  <b>Get</b>
+  <ul>
+    <li><code>update</code><br>Triggers querying of values from the CMI. Please note that the request rate is limited to one query per minute.
+    </li>
+  </ul>
+  
+  <br><br>
+  <a name="TA_CMI_JSONattr"></a>
+  <b>Attributes</b>
+  <br><br>
+  <ul>
+    <li><code>readingNamesDL-Bus {index:reading-name}</code><br>This maps received values from the DL-Bus to readings. eg <code>1:Flowrate_Solar 2:T.Solar_Backflow</code></li>
+    <li><code>readingNamesInputs {index:reading-name}</code><br>This maps received values from the Inputs to readings. eg <code>1:Flowrate_Solar 2:T.Solar_Backflow</code></li>
+    <li><code>readingNamesOutputs {index:reading-name}</code><br>This maps received values from the Outputs to readings. eg <code>1:Flowrate_Solar 2:T.Solar_Backflow</code></li>
+    <li><code>interval</code><br>Query interval in seconds. Minimum query interval is 60 seconds.</li>
+    
+  </ul>
+  <br><br>
+  
+  <a name="TA_CMI_JSONreadings"></a>
+  <b>Readings</b>
+  <br><br>
+  Readings will appear according to the mappings defined in Attributes.
+  
 =end html
 
 =begin html_DE
- Deustche Commandref in HTML
+ <a name="TA_CMI_JSON"></a>
+<h3>TA_CMI_JSON</h3>
+Weitere Informationen zu diesem Modul im <a href="https://wiki.fhem.de/wiki/UVR16x2">FHEM-Wiki</a>.
+<a name="TA_CMI_JSONdefine"></a>
+  <b>Define</b>
+  <ul>
+    <code>define &lt;name&gt; TA_CMI_JSON  &lt;IP&gt; &lt;CAN-Node-Id&gt; &lt;Query-Params&gt;</code>
+    <br><br>
+    Liest Werte vom CMI mit der angegebenen IP für das CAN-Gerät mit der angegebenen Node-Id.<br/>
+    Query-Param definiert, welche Werte ausgelesen werden sollen. Erlaubt sind I,O,D.
+    <br>
+    Beispiel:
+    <ul>
+      <code>defmod cmi TA_CMI_JSON 192.168.4.250 1 I,O,D</code><br>
+    </ul>
+    <br>
+    Daneben muss auch noch das mapping angegeben werden, welche Werte in welches Reading geschrieben werden sollen.<br/>
+    Nur gemappte Werte werden in Readings geschrieben. (siehe <a href="#TA_CMI_JSONattr">Attributes</a>)
+  </ul>
+  <br><br>
+  
+    <a name="TA_CMI_JSONget"></a>
+  <b>Get</b>
+  <ul>
+    <li><code>update</code><br>Hiermit kann sofort eine Abfrage der API ausgef&uuml;hrt werden. Das Limit von einer Anfrage pro Minute besteht trotzdem.
+    </li>
+  </ul>
+  
+  <br><br>
+  <a name="TA_CMI_JSONattr"></a>
+  <b>Attributes</b>
+  <br><br>
+  <ul>
+    <li><code>readingNamesDL-Bus {index:reading-name}</code><br>Hiermit werden erhaltene Werte vom DL-Bus einem Reading zugewiesen. zB <code>1:Durchfluss_Solar 2:T.Solar_RL</code></li>
+    <li><code>readingNamesInput {index:reading-name}</code><br>Hiermit werden erhaltene Werte der Eing&auml;nge einem Reading zugewiesen. zB <code>1:Durchfluss_Solar 2:T.Solar_RL</code></li>
+    <li><code>readingNamesDL-Bus {index:reading-name}</code><br>Hiermit werden erhaltene Werte der Ausg&auml;nge einem Reading zugewiesen. zB <code>1:Durchfluss_Solar 2:T.Solar_RL</code></li>
+    <li><code>interval</code><br>Abfrage-Intervall in Sekunden. Muss mindestens 60 sein.</li>
+    
+  </ul>
+  <br><br>
+  
+  <a name="TA_CMI_JSONreadings"></a>
+  <b>Readings</b>
+  <br><br>
+  Readings werden entsprechend der Definition in den Attributen angelegt.
 =end html
 
 # Ende der Commandref
