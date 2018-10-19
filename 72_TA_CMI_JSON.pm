@@ -21,7 +21,7 @@ sub TA_CMI_JSON_Initialize($) {
   $hash->{DefFn}     = "TA_CMI_JSON_Define";
   $hash->{UndefFn}   = "TA_CMI_JSON_Undef";
 
-  $hash->{AttrList} = "readingNamesInputs readingNamesOutputs readingNamesDL-Bus " . $readingFnAttributes;
+  $hash->{AttrList} = "interval readingNamesInputs readingNamesOutputs readingNamesDL-Bus " . $readingFnAttributes;
 
   Log3 '', 3, "TA_CMI_JSON - Initialize done ...";
 }
@@ -46,7 +46,7 @@ sub TA_CMI_JSON_Define($$) {
   $hash->{CMIURL} = $cmiUrl;
   $hash->{NODEID} = $nodeId;
   $hash->{QUERYPARAM} = $queryParams;
-  $hash->{INTERVAL} = AttrVal( $name, "interval", "70" );
+  $hash->{INTERVAL} = AttrVal( $name, "interval", "60" );
   
   Log3 $name, 5, "TA_CMI_JSON ($name) - Define done ... module=$module, CMI-URL=$cmiUrl, nodeId=$nodeId, queryParams=$queryParams";
 
@@ -111,6 +111,7 @@ sub TA_CMI_JSON_ParseHttpResponse($) {
      $hash->{STATE} = $keyValues->{Status};
      $hash->{CAN_DEVICE} = TA_CMI_JSON_extractDeviceName($keyValues->{Header_Device});
      $hash->{CMI_API_VERSION} = TA_CMI_JSON_extractVersion($keyValues->{Header_Version});
+     CommandDeleteReading(undef, "$name error");
 
      readingsBeginUpdate($hash);
      readingsBulkUpdateIfChanged($hash, 'state', $keyValues->{Status});
