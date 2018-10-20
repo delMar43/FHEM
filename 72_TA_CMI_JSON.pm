@@ -58,7 +58,7 @@ sub TA_CMI_JSON_Initialize($) {
   $hash->{DefFn}     = "TA_CMI_JSON_Define";
   $hash->{UndefFn}   = "TA_CMI_JSON_Undef";
 
-  $hash->{AttrList} = "interval readingNamesInputs readingNamesOutputs readingNamesDL-Bus " . $readingFnAttributes;
+  $hash->{AttrList} = "password interval readingNamesInputs readingNamesOutputs readingNamesDL-Bus " . $readingFnAttributes;
 
   Log3 '', 3, "TA_CMI_JSON - Initialize done ...";
 }
@@ -114,16 +114,17 @@ sub TA_CMI_JSON_PerformHttpRequest($) {
     my ($hash, $def) = @_;
     my $name = $hash->{NAME};
     my $url = "http://$hash->{CMIURL}/INCLUDE/api.cgi?jsonnode=$hash->{NODEID}&jsonparam=$hash->{QUERYPARAM}";
+    my $password = AttrVal($name, 'password', 'admin');
 
     my $param = {
                     url        => "$url",
                     timeout    => 5,
-                    hash       => $hash,                                                                                 # Muss gesetzt werden, damit die Callback funktion wieder $hash hat
-                    method     => "GET",                                                                                 # Lesen von Inhalten
-                    header     => "User-Agent: TeleHeater/2.2.3\r\nAccept: application/json",                            # Den Header gemäß abzufragender Daten ändern
+                    hash       => $hash,
+                    method     => "GET",
+                    header     => "User-Agent: FHEM\r\nAccept: application/json",
                     user       => "admin",
-                    pwd        => "admin",
-                    callback   => \&TA_CMI_JSON_ParseHttpResponse                                                                  # Diese Funktion soll das Ergebnis dieser HTTP Anfrage bearbeiten
+                    pwd        => $password,
+                    callback   => \&TA_CMI_JSON_ParseHttpResponse
                 };
 
     HttpUtils_NonblockingGet($param);
