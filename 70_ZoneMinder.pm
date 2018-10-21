@@ -182,6 +182,7 @@ sub ZoneMinder_API_Login_Callback {
   my $name = $hash->{NAME};
 
   $hash->{APILoginStatus} = $param->{code};
+  Log3 $name, 3, "ZoneMinder ($name) - login status: $hash->{APILoginStatus}";
 
   if($err ne "") {
     Log3 $name, 0, "error while requesting ".$param->{url}." - $err";
