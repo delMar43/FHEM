@@ -31,7 +31,7 @@
 # * https://forum.fhem.de/index.php/topic,41439.0.html
 # * https://forum.fhem.de/index.php/topic,13534.45.html
 #
-# $Id:
+# $Id: 72_TA_CMI_JSON.pm 17661 2018-11-02 07:46:34Z delmar $
 #
 ##############################################################################
 
@@ -106,6 +106,7 @@ sub TA_CMI_JSON_Undef($$) {
   my $name = $hash->{NAME};
 
   HttpUtils_Close($hash);
+  RemoveInternalTimer($hash);
 
   return undef;
 }
