@@ -25,13 +25,14 @@
 # Supported devices are UVR1611, UVR16x2, RSM610, CAN-I/O45, CAN-EZ2, CAN-MTx2,
 # and CAN-BC2 by Technische Alternative https://www.ta.co.at/
 #
-# Information in the Wiki: https://wiki.fhem.de/wiki/UVR16x2
+# Information in the Wiki: https://wiki.fhem.de/wiki/TA_CMI_UVR16x2_UVR1611
 #
 # Discussed in FHEM Forum:
-# * https://forum.fhem.de/index.php/topic,41439.0.html
-# * https://forum.fhem.de/index.php/topic,13534.45.html
+# * https://forum.fhem.de/index.php/topic,92740.0.html (official)
+# * https://forum.fhem.de/index.php/topic,41439.0.html (previous discussions)
+# * https://forum.fhem.de/index.php/topic,13534.45.html (previous discussions)
 #
-# $Id: 72_TA_CMI_JSON.pm 17661 2018-11-02 07:46:34Z delmar $
+# $Id: 72_TA_CMI_JSON.pm 17662 2018-11-02 14:40:28Z delmar $
 #
 ##############################################################################
 
@@ -58,7 +59,7 @@ sub TA_CMI_JSON_Initialize($) {
   $hash->{DefFn}     = "TA_CMI_JSON_Define";
   $hash->{UndefFn}   = "TA_CMI_JSON_Undef";
 
-  $hash->{AttrList} = "username password interval readingNamesInputs readingNamesOutputs readingNamesDL-Bus " . $readingFnAttributes;
+  $hash->{AttrList} = "username password interval readingNamesInputs readingNamesOutputs readingNamesDL-Bus readingNamesLoggingAnalog readingNamesLoggingDigital " . $readingFnAttributes;
 
   Log3 '', 3, "TA_CMI_JSON - Initialize done ...";
 }
@@ -139,30 +140,31 @@ sub TA_CMI_JSON_ParseHttpResponse($) {
   my $return;
 
   if($err ne "") {
-     Log3 $name, 0, "error while requesting ".$param->{url}." - $err";                                               # Eintrag fürs Log
-#     readingsSingleUpdate($hash, "fullResponse", "ERROR", 0);                                                        # Readings erzeugen
+      Log3 $name, 0, "error while requesting ".$param->{url}." - $err";
       readingsBeginUpdate($hash);
       readingsBulkUpdate($hash, 'state', 'ERROR', 0);
       readingsBulkUpdate($hash, 'error', $err, 0);
       readingsEndUpdate($hash, 0);      
   } elsif($data ne "") {
-     my $keyValues = json2nameValue($data);
+    my $keyValues = json2nameValue($data);
 
-     $hash->{STATE} = $keyValues->{Status};
-     $hash->{CAN_DEVICE} = TA_CMI_JSON_extractDeviceName($keyValues->{Header_Device});
-     $hash->{CMI_API_VERSION} = TA_CMI_JSON_extractVersion($keyValues->{Header_Version});
-     CommandDeleteReading(undef, "$name error");
+    $hash->{STATE} = $keyValues->{Status};
+    $hash->{CAN_DEVICE} = TA_CMI_JSON_extractDeviceName($keyValues->{Header_Device});
+    $hash->{CMI_API_VERSION} = TA_CMI_JSON_extractVersion($keyValues->{Header_Version});
+    CommandDeleteReading(undef, "$name error");
 
-     readingsBeginUpdate($hash);
-     readingsBulkUpdateIfChanged($hash, 'state', $keyValues->{Status});
-     if ( $keyValues->{Status} eq 'OK' ) {
-       my $queryParams = $hash->{QUERYPARAM};
-       TA_CMI_JSON_extractReadings($hash, $keyValues, 'Inputs') if ($queryParams =~ /I/);
-       TA_CMI_JSON_extractReadings($hash, $keyValues, 'Outputs') if ($queryParams =~ /O/);
-       TA_CMI_JSON_extractReadings($hash, $keyValues, 'DL-Bus') if ($queryParams =~ /D/);
-     }
+    readingsBeginUpdate($hash);
+    readingsBulkUpdateIfChanged($hash, 'state', $keyValues->{Status});
+    if ( $keyValues->{Status} eq 'OK' ) {
+      my $queryParams = $hash->{QUERYPARAM};
+      TA_CMI_JSON_extractReadings($hash, $keyValues, 'Inputs', 'Inputs') if ($queryParams =~ /I/);
+      TA_CMI_JSON_extractReadings($hash, $keyValues, 'Outputs', 'Outputs') if ($queryParams =~ /O/);
+      TA_CMI_JSON_extractReadings($hash, $keyValues, 'DL-Bus', 'DL-Bus') if ($queryParams =~ /D/);
+      TA_CMI_JSON_extractReadings($hash, $keyValues, 'LoggingAnalog', 'Logging Analog') if ($queryParams =~ /La/);
+      TA_CMI_JSON_extractReadings($hash, $keyValues, 'LoggingDigital', 'Logging Digital') if ($queryParams =~ /Ld/);
+    }
      
-     readingsEndUpdate($hash, 1);
+    readingsEndUpdate($hash, 1);
 
 #     Log3 $name, 3, "TA_CMI_JSON ($name) - Device: $keyValues->{Header_Device}";
   }
@@ -217,7 +219,7 @@ sub TA_CMI_JSON_extractVersion($) {
 }
 
 sub TA_CMI_JSON_extractReadings($$$) {
-  my ( $hash, $keyValues, $id ) = @_;
+  my ( $hash, $keyValues, $id, $dataKey ) = @_;
   my $name = $hash->{NAME};
 
   my $readingNames = AttrVal($name, "readingNames$id", '');
@@ -228,7 +230,7 @@ sub TA_CMI_JSON_extractReadings($$$) {
     my ( $idx, $readingName ) = split(/\:/, $readingsArray[$i]);
     $readingName = makeReadingName($readingName);
 
-    my $jsonKey = 'Data_'.$id.'_'.$idx.'_Value_Value';
+    my $jsonKey = 'Data_'.$dataKey.'_'.$idx.'_Value_Value';
     my $readingValue = $keyValues->{$jsonKey};
     Log3 $name, 5, "readingName: $readingName, key: $jsonKey, value: $readingValue";
     
