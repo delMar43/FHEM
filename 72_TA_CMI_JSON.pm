@@ -304,6 +304,13 @@ sub TA_CMI_JSON_extractReadings($$$$) {
     Log3 $name, 5, "readingName: $readingName, key: $jsonKey, value: $readingValue";
     readingsBulkUpdateIfChanged($hash, $readingName, $readingValue);
 
+    $jsonKey = 'Data_'.$dataKey.'_'.$idx.'_Value_RAS';
+    my $readingRas = $keyValues->{$jsonKey};
+    if ($readingRas) {
+      my $ras = (defined($rasStates{$readingRas}) ? $rasStates{$readingRas} : undef);
+      readingsBulkUpdateIfChanged($hash, $readingName . '_RAS', $ras) if ($ras);
+    }
+
     my $unit;
     if ($inclUnitReadings || $inclPrettyReadings) {
       $jsonKey = 'Data_'.$dataKey.'_'.$idx.'_Value_Unit';
@@ -384,6 +391,10 @@ sub TA_CMI_JSON_Get ($@) {
     <li><code>readingNamesDL-Bus {index:reading-name}</code><br>This maps received values from the DL-Bus to readings. eg <code>1:Flowrate_Solar 2:T.Solar_Backflow</code></li>
     <li><code>readingNamesInputs {index:reading-name}</code><br>This maps received values from the Inputs to readings. eg <code>1:Flowrate_Solar 2:T.Solar_Backflow</code></li>
     <li><code>readingNamesOutputs {index:reading-name}</code><br>This maps received values from the Outputs to readings. eg <code>1:Flowrate_Solar 2:T.Solar_Backflow</code></li>
+    <li><code>readingNamesLoggingAnalog {index:reading-name}</code><br>This maps received values from Analog Logging to readings. zB eg <code>1:Flowrate_Solar 2:T.Solar_Backflow</code></li>
+    <li><code>readingNamesLoggingDigital {index:reading-name}</code><br>This maps received values from Digital Logging to readings. zB eg <code>1:Flowrate_Solar 2:T.Solar_Backflow</code></li>
+    <li><code>includeUnitReadings [0:1]</code><br>Adds another reading per value, which just contains the according unit of that reading.</li>
+    <li><code>includePrettyReadings [0:1]</code><br>Adds another reading per value, which contains value plus unit of that reading.</li>
     <li><code>interval</code><br>Query interval in seconds. Minimum query interval is 60 seconds.</li>
     <li><code>username</code><br>Username for querying the JSON-API. Needs to be either admin or user privilege.</li>
     <li><code>password</code><br>Password for querying the JSON-API.</li>
@@ -436,6 +447,10 @@ Weitere Informationen zu diesem Modul im <a href="https://wiki.fhem.de/wiki/UVR1
     <li><code>readingNamesDL-Bus {index:reading-name}</code><br>Hiermit werden erhaltene Werte vom DL-Bus einem Reading zugewiesen. zB <code>1:Durchfluss_Solar 2:T.Solar_RL</code></li>
     <li><code>readingNamesInput {index:reading-name}</code><br>Hiermit werden erhaltene Werte der Eing&auml;nge einem Reading zugewiesen. zB <code>1:Durchfluss_Solar 2:T.Solar_RL</code></li>
     <li><code>readingNamesDL-Bus {index:reading-name}</code><br>Hiermit werden erhaltene Werte der Ausg&auml;nge einem Reading zugewiesen. zB <code>1:Durchfluss_Solar 2:T.Solar_RL</code></li>
+    <li><code>readingNamesLoggingAnalog {index:reading-name}</code><br>Hiermit werden erhaltene Werte vom Analog Logging einem Reading zugewiesen. zB <code>1:Durchfluss_Solar 2:T.Solar_RL</code></li>
+    <li><code>readingNamesLoggingDigital {index:reading-name}</code><br>Hiermit werden erhaltene Werte vom Digital Logging einem Reading zugewiesen. zB <code>1:Durchfluss_Solar 2:T.Solar_RL</code></li>
+    <li><code>includeUnitReadings [0:1]</code><br>Definiert, ob zu jedem Reading ein zusätzliches Reading _Name geschrieben werden soll, welches die Einheit enth&auml;lt.</li>
+    <li><code>includePrettyReadings [0:1]</code><br>Definiert, ob zu jedem Reading zusätzlich ein Reading, welches Wert und Einheit enth&auml;lt, geschrieben werden soll.</li>
     <li><code>interval</code><br>Abfrage-Intervall in Sekunden. Muss mindestens 60 sein.</li>
     <li><code>username</code><br>Username zur Abfrage der JSON-API. Muss die Berechtigungsstufe admin oder user haben.</li>
     <li><code>password</code><br>Passwort zur Abfrage der JSON-API.</li>
