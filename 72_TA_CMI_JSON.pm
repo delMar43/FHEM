@@ -41,16 +41,16 @@ use strict;
 use warnings;
 use HttpUtils;
 
-sub TA_CMI_JSON_Initialize;
-sub TA_CMI_JSON_Define;
-sub TA_CMI_JSON_GetStatus;
-sub TA_CMI_JSON_Undef;
-sub TA_CMI_JSON_PerformHttpRequest;
-sub TA_CMI_JSON_ParseHttpResponse;
-sub TA_CMI_JSON_Get;
-sub TA_CMI_JSON_extractDeviceName;
-sub TA_CMI_JSON_extractVersion;
-sub TA_CMI_JSON_extractReadings;
+sub TA_CMI_JSON_Initialize($);
+sub TA_CMI_JSON_Define($$);
+sub TA_CMI_JSON_GetStatus($;$);
+sub TA_CMI_JSON_Undef($$);
+sub TA_CMI_JSON_PerformHttpRequest($);
+sub TA_CMI_JSON_ParseHttpResponse($);
+sub TA_CMI_JSON_Get($@);
+sub TA_CMI_JSON_extractDeviceName($);
+sub TA_CMI_JSON_extractVersion($);
+sub TA_CMI_JSON_extractReadings($$$$);
 
 sub TA_CMI_JSON_Initialize($) {
   my ($hash) = @_;
@@ -160,10 +160,10 @@ sub TA_CMI_JSON_ParseHttpResponse($) {
       TA_CMI_JSON_extractReadings($hash, $keyValues, 'Inputs', 'Inputs') if ($queryParams =~ /I/);
       TA_CMI_JSON_extractReadings($hash, $keyValues, 'Outputs', 'Outputs') if ($queryParams =~ /O/);
       TA_CMI_JSON_extractReadings($hash, $keyValues, 'DL-Bus', 'DL-Bus') if ($queryParams =~ /D/);
-      TA_CMI_JSON_extractReadings($hash, $keyValues, 'LoggingAnalog', 'Logging Analog') if ($queryParams =~ /La/);
-      TA_CMI_JSON_extractReadings($hash, $keyValues, 'LoggingDigital', 'Logging Digital') if ($queryParams =~ /Ld/);
+      TA_CMI_JSON_extractReadings($hash, $keyValues, 'LoggingAnalog', 'Logging_Analog') if ($queryParams =~ /La/);
+      TA_CMI_JSON_extractReadings($hash, $keyValues, 'LoggingDigital', 'Logging_Digital') if ($queryParams =~ /Ld/);
     }
-     
+    
     readingsEndUpdate($hash, 1);
 
 #     Log3 $name, 3, "TA_CMI_JSON ($name) - Device: $keyValues->{Header_Device}";
@@ -218,7 +218,7 @@ sub TA_CMI_JSON_extractVersion($) {
   return $result;
 }
 
-sub TA_CMI_JSON_extractReadings($$$) {
+sub TA_CMI_JSON_extractReadings($$$$) {
   my ( $hash, $keyValues, $id, $dataKey ) = @_;
   my $name = $hash->{NAME};
 
