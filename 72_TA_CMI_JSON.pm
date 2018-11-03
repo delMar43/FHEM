@@ -53,19 +53,78 @@ sub TA_CMI_JSON_extractVersion($);
 sub TA_CMI_JSON_extractReadings($$$$);
 
 my %deviceNames = (
-    '80' => 'UVR1611',
-    '87' => 'UVR16x2',
-    '88' => 'RSM610',
-    '89' => 'CAN-I/O45',
-    '8B' => 'CAN-EZ2',
-    '8C' => 'CAN-MTx2',
-    '8D' => 'CAN-BC2'
+  '80' => 'UVR1611',
+  '87' => 'UVR16x2',
+  '88' => 'RSM610',
+  '89' => 'CAN-I/O45',
+  '8B' => 'CAN-EZ2',
+  '8C' => 'CAN-MTx2',
+  '8D' => 'CAN-BC2'
 );
 
 my %versions = (
-    1 => '1.25.2 2016-12-12',
-    2 => '1.26.1 2017-02-24',
-    3 => '1.28.0 2017-11-09'
+  1 => '1.25.2 2016-12-12',
+  2 => '1.26.1 2017-02-24',
+  3 => '1.28.0 2017-11-09'
+);
+
+my %units = (
+   1 => '°C',
+   2 => 'W/m²',
+   3 => 'l/h',
+   4 => 'Sek',
+   5 => 'Min',
+   6 => 'l/Imp',
+   7 => 'K',
+   8 => '%',
+  10 => 'kW',
+  11 => 'kWh',
+  12 => 'MWh',
+  13 => 'V',
+  14 => 'mA',
+  15 => 'Std',
+  16 => 'Tage',
+  17 => 'Imp',
+  18 => 'kΩ',
+  19 => 'l',
+  20 => 'km/h',
+  21 => 'Hz',
+  22 => 'l/min',
+  23 => 'bar',
+  25 => 'km',
+  26 => 'm',
+  27 => 'mm',
+  28 => 'm³',
+  35 => 'l/d',
+  36 => 'm/s',
+  37 => 'm³/min',
+  38 => 'm³/h',
+  39 => 'm³/d',
+  40 => 'mm/min',
+  41 => 'mm/h',
+  42 => 'mm/d',
+  43 => 'Aus/Ein',
+  44 => 'Nein/Ja',
+  46 => '°C',
+  50 => '€',
+  51 => '$',
+  52 => 'g/m³',
+  54 => '°',
+  56 => '°',
+  57 => 'Sek',
+  59 => '%',
+  60 => 'Uhr',
+  63 => 'A',
+  65 => 'mbar',
+  66 => 'Pa',
+  67 => 'ppm'
+);
+
+my %rasStates = (
+  0 => 'Time/auto',
+  1 => 'Standard',
+  2 => 'Setback',
+  3 => 'Standby/frost pr.'
 );
 
 sub TA_CMI_JSON_Initialize($) {
@@ -75,7 +134,7 @@ sub TA_CMI_JSON_Initialize($) {
   $hash->{DefFn}     = "TA_CMI_JSON_Define";
   $hash->{UndefFn}   = "TA_CMI_JSON_Undef";
 
-  $hash->{AttrList} = "username password interval readingNamesInputs readingNamesOutputs readingNamesDL-Bus readingNamesLoggingAnalog readingNamesLoggingDigital " . $readingFnAttributes;
+  $hash->{AttrList} = "username password interval readingNamesInputs readingNamesOutputs readingNamesDL-Bus readingNamesLoggingAnalog readingNamesLoggingDigital includePrettyReadings:0,1 includeUnitReadings:0,1 " . $readingFnAttributes;
 
   Log3 '', 3, "TA_CMI_JSON - Initialize done ...";
 }
@@ -233,6 +292,9 @@ sub TA_CMI_JSON_extractReadings($$$$) {
   Log3 $name, 5, 'readingNames'.$id.": $readingNames";
   my @readingsArray = split(/ /, $readingNames); #1:T.Kollektor 5:T.Vorlauf
 
+  my $inclUnitReadings =  AttrVal( $name, "includeUnitReadings", 0 );
+  my $inclPrettyReadings = AttrVal( $name, "includePrettyReadings", 0 );
+
   for my $i (0 .. (@readingsArray-1)) {
     my ( $idx, $readingName ) = split(/\:/, $readingsArray[$i]);
     $readingName = makeReadingName($readingName);
@@ -240,8 +302,21 @@ sub TA_CMI_JSON_extractReadings($$$$) {
     my $jsonKey = 'Data_'.$dataKey.'_'.$idx.'_Value_Value';
     my $readingValue = $keyValues->{$jsonKey};
     Log3 $name, 5, "readingName: $readingName, key: $jsonKey, value: $readingValue";
-    
     readingsBulkUpdateIfChanged($hash, $readingName, $readingValue);
+
+    my $unit;
+    if ($inclUnitReadings || $inclPrettyReadings) {
+      $jsonKey = 'Data_'.$dataKey.'_'.$idx.'_Value_Unit';
+      my $readingUnit = $keyValues->{$jsonKey};
+      $unit = (defined($units{$readingUnit}) ? $units{$readingUnit} : 'unknown: ' . $readingUnit);
+      Log3 $name, 5, "readingName: $readingName . '_Unit', key: $jsonKey, value: $readingUnit, unit: $unit";
+
+      readingsBulkUpdateIfChanged($hash, $readingName . '_Unit', $unit) if ($inclUnitReadings);
+    }
+
+    if ($inclPrettyReadings) {
+      readingsBulkUpdateIfChanged($hash, $readingName . '_Pretty', $readingValue . ' ' . $unit);
+    }
   }
 
   return undef;
