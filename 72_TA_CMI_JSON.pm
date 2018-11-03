@@ -52,6 +52,22 @@ sub TA_CMI_JSON_extractDeviceName($);
 sub TA_CMI_JSON_extractVersion($);
 sub TA_CMI_JSON_extractReadings($$$$);
 
+my %deviceNames = (
+    '80' => 'UVR1611',
+    '87' => 'UVR16x2',
+    '88' => 'RSM610',
+    '89' => 'CAN-I/O45',
+    '8B' => 'CAN-EZ2',
+    '8C' => 'CAN-MTx2',
+    '8D' => 'CAN-BC2'
+);
+
+my %versions = (
+    1 => '1.25.2 2016-12-12',
+    2 => '1.26.1 2017-02-24',
+    3 => '1.28.0 2017-11-09'
+);
+
 sub TA_CMI_JSON_Initialize($) {
   my ($hash) = @_;
 
@@ -149,7 +165,8 @@ sub TA_CMI_JSON_ParseHttpResponse($) {
     my $keyValues = json2nameValue($data);
 
     $hash->{STATE} = $keyValues->{Status};
-    $hash->{CAN_DEVICE} = TA_CMI_JSON_extractDeviceName($keyValues->{Header_Device});
+    my $canDevice = TA_CMI_JSON_extractDeviceName($keyValues->{Header_Device});
+    $hash->{CAN_DEVICE} = $canDevice;
     $hash->{CMI_API_VERSION} = TA_CMI_JSON_extractVersion($keyValues->{Header_Version});
     CommandDeleteReading(undef, "$name error");
 
@@ -157,11 +174,33 @@ sub TA_CMI_JSON_ParseHttpResponse($) {
     readingsBulkUpdateIfChanged($hash, 'state', $keyValues->{Status});
     if ( $keyValues->{Status} eq 'OK' ) {
       my $queryParams = $hash->{QUERYPARAM};
+
       TA_CMI_JSON_extractReadings($hash, $keyValues, 'Inputs', 'Inputs') if ($queryParams =~ /I/);
       TA_CMI_JSON_extractReadings($hash, $keyValues, 'Outputs', 'Outputs') if ($queryParams =~ /O/);
-      TA_CMI_JSON_extractReadings($hash, $keyValues, 'DL-Bus', 'DL-Bus') if ($queryParams =~ /D/);
-      TA_CMI_JSON_extractReadings($hash, $keyValues, 'LoggingAnalog', 'Logging_Analog') if ($queryParams =~ /La/);
-      TA_CMI_JSON_extractReadings($hash, $keyValues, 'LoggingDigital', 'Logging_Digital') if ($queryParams =~ /Ld/);
+
+      if ($queryParams =~ /D/) {
+        if ($canDevice eq 'UVR16x2') {
+          TA_CMI_JSON_extractReadings($hash, $keyValues, 'DL-Bus', 'DL-Bus');
+        } else {
+          Log3 $name, 0, "TA_CMI_JSON ($name) - Reading DL-Bus input is not supported on $canDevice";
+        }
+      }
+
+      if ($queryParams =~ /La/) {
+        if ($canDevice eq 'UVR16x2') {
+          TA_CMI_JSON_extractReadings($hash, $keyValues, 'LoggingAnalog', 'Logging_Analog');
+        } else {
+          Log3 $name, 0, "TA_CMI_JSON ($name) - Reading Logging Analog data is not supported on $canDevice";
+        }
+      }
+
+      if ($queryParams =~ /Ld/) {
+        if ($canDevice eq 'UVR16x2') {
+          TA_CMI_JSON_extractReadings($hash, $keyValues, 'LoggingDigital', 'Logging_Digital');
+        } else {
+          Log3 $name, 0, "TA_CMI_JSON ($name) - Reading Logging Digital data is not supported on $canDevice";
+        }
+      }
     }
     
     readingsEndUpdate($hash, 1);
@@ -177,45 +216,13 @@ sub TA_CMI_JSON_ParseHttpResponse($) {
 }
 
 sub TA_CMI_JSON_extractDeviceName($) {
-  my ($input) = @_;
-
-  my $result;
-  if ($input eq '80') {
-    $result = 'UVR1611';
-  } elsif ($input eq '87') {
-    $result = 'UVR16x2';
-  } elsif ($input eq '88') {
-    $result = 'RSM610';
-  } elsif ($input eq '89') {
-    $result = 'CAN-I/O45';
-  } elsif ($input eq '8B') {
-    $result = 'CAN-EZ2';
-  } elsif ($input eq '8C') {
-    $result = 'CAN-MTx2';
-  } elsif ($input eq '8D') {
-    $result = 'CAN-BC2';
-  } else {
-    $result = "Unknown: $input";
-  }
-
-  return $result;
+    my ($input) = @_;
+    return (defined($deviceNames{$input}) ? $deviceNames{$input} : 'unknown: ' . $input);
 }
 
 sub TA_CMI_JSON_extractVersion($) {
-  my ($input) = @_;
-  
-  my $result;
-  if ($input == 1) {
-    $result = '1.25.2 2016-12-12';
-  } elsif ($input == 2) {
-    $result = '1.26.1 2017-02-24';
-  } elsif ($input == 3) {
-    $result = '1.28.0 2017-11-09';
-  } else {
-    $result = "unknown: $input";
-  }
-  
-  return $result;
+    my ($input) = @_;
+    return (defined($versions{$input}) ? $versions{$input} : 'unknown: ' . $input);
 }
 
 sub TA_CMI_JSON_extractReadings($$$$) {
