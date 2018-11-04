@@ -41,17 +41,6 @@ use strict;
 use warnings;
 use HttpUtils;
 
-sub TA_CMI_JSON_Initialize($);
-sub TA_CMI_JSON_Define($$);
-sub TA_CMI_JSON_GetStatus($;$);
-sub TA_CMI_JSON_Undef($$);
-sub TA_CMI_JSON_PerformHttpRequest($);
-sub TA_CMI_JSON_ParseHttpResponse($);
-sub TA_CMI_JSON_Get($@);
-sub TA_CMI_JSON_extractDeviceName($);
-sub TA_CMI_JSON_extractVersion($);
-sub TA_CMI_JSON_extractReadings($$$$);
-
 my %deviceNames = (
   '80' => 'UVR1611',
   '87' => 'UVR16x2',
@@ -131,7 +120,7 @@ my %rasStates = (
   3 => 'Standby/frost pr.'
 );
 
-sub TA_CMI_JSON_Initialize($) {
+sub TA_CMI_JSON_Initialize {
   my ($hash) = @_;
 
   $hash->{GetFn}     = "TA_CMI_JSON_Get";
@@ -143,7 +132,7 @@ sub TA_CMI_JSON_Initialize($) {
   Log3 '', 3, "TA_CMI_JSON - Initialize done ...";
 }
 
-sub TA_CMI_JSON_Define($$) {
+sub TA_CMI_JSON_Define {
   my ( $hash, $def ) = @_;
   my @a = split( "[ \t][ \t]*", $def );
  
@@ -174,14 +163,14 @@ sub TA_CMI_JSON_Define($$) {
   return undef;
 }
 
-sub TA_CMI_JSON_GetStatus( $;$ ) {
+sub TA_CMI_JSON_GetStatus {
   my ( $hash, $delay ) = @_;
   my $name = $hash->{NAME};
 
   TA_CMI_JSON_PerformHttpRequest($hash);
 }
 
-sub TA_CMI_JSON_Undef($$) {
+sub TA_CMI_JSON_Undef {
   my ($hash, $arg) = @_; 
   my $name = $hash->{NAME};
 
@@ -191,7 +180,7 @@ sub TA_CMI_JSON_Undef($$) {
   return undef;
 }
 
-sub TA_CMI_JSON_PerformHttpRequest($) {
+sub TA_CMI_JSON_PerformHttpRequest {
     my ($hash, $def) = @_;
     my $name = $hash->{NAME};
     my $url = "http://$hash->{CMIURL}/INCLUDE/api.cgi?jsonnode=$hash->{NODEID}&jsonparam=$hash->{QUERYPARAM}";
@@ -212,7 +201,7 @@ sub TA_CMI_JSON_PerformHttpRequest($) {
     HttpUtils_NonblockingGet($param);
 }
 
-sub TA_CMI_JSON_ParseHttpResponse($) {
+sub TA_CMI_JSON_ParseHttpResponse {
   my ($param, $err, $data) = @_;
   my $hash = $param->{hash};
   my $name = $hash->{NAME};
@@ -277,17 +266,17 @@ sub TA_CMI_JSON_ParseHttpResponse($) {
   return undef;
 }
 
-sub TA_CMI_JSON_extractDeviceName($) {
+sub TA_CMI_JSON_extractDeviceName {
     my ($input) = @_;
     return (defined($deviceNames{$input}) ? $deviceNames{$input} : 'unknown: ' . $input);
 }
 
-sub TA_CMI_JSON_extractVersion($) {
+sub TA_CMI_JSON_extractVersion {
     my ($input) = @_;
     return (defined($versions{$input}) ? $versions{$input} : 'unknown: ' . $input);
 }
 
-sub TA_CMI_JSON_extractReadings($$$$) {
+sub TA_CMI_JSON_extractReadings {
   my ( $hash, $keyValues, $id, $dataKey ) = @_;
   my $name = $hash->{NAME};
 
@@ -332,7 +321,7 @@ sub TA_CMI_JSON_extractReadings($$$$) {
   return undef;
 }
 
-sub TA_CMI_JSON_Get ($@) {
+sub TA_CMI_JSON_Get {
   my ( $hash, $name, $opt, $args ) = @_;
 
   if ("update" eq $opt) {
