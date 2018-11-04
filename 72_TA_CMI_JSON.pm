@@ -227,7 +227,6 @@ sub TA_CMI_JSON_ParseHttpResponse($) {
   } elsif($data ne "") {
     my $keyValues = json2nameValue($data);
 
-    $hash->{STATE} = $keyValues->{Status};
     my $canDevice = TA_CMI_JSON_extractDeviceName($keyValues->{Header_Device});
     $hash->{CAN_DEVICE} = $canDevice;
     $hash->{CMI_API_VERSION} = TA_CMI_JSON_extractVersion($keyValues->{Header_Version});
