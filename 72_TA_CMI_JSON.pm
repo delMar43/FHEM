@@ -298,7 +298,7 @@ sub TA_CMI_JSON_extractReadings {
 
     $jsonKey = 'Data_'.$dataKey.'_'.$idx.'_Value_RAS';
     my $readingRas = $keyValues->{$jsonKey};
-    if ($readingRas) {
+    if (defined($readingRas)) {
       my $ras = (defined($rasStates{$readingRas}) ? $rasStates{$readingRas} : undef);
       readingsBulkUpdateIfChanged($hash, $readingName . '_RAS', $ras) if ($ras);
     }
