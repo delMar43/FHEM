@@ -58,58 +58,14 @@ my %versions = (
 );
 
 my %units = (
-   0 => '',
-   1 => '°C',
-   2 => 'W/m²',
-   3 => 'l/h',
-   4 => 'Sek',
-   5 => 'Min',
-   6 => 'l/Imp',
-   7 => 'K',
-   8 => '%',
-  10 => 'kW',
-  11 => 'kWh',
-  12 => 'MWh',
-  13 => 'V',
-  14 => 'mA',
-  15 => 'Std',
-  16 => 'Tage',
-  17 => 'Imp',
-  18 => 'kΩ',
-  19 => 'l',
-  20 => 'km/h',
-  21 => 'Hz',
-  22 => 'l/min',
-  23 => 'bar',
-  24 => '',
-  25 => 'km',
-  26 => 'm',
-  27 => 'mm',
-  28 => 'm³',
-  35 => 'l/d',
-  36 => 'm/s',
-  37 => 'm³/min',
-  38 => 'm³/h',
-  39 => 'm³/d',
-  40 => 'mm/min',
-  41 => 'mm/h',
-  42 => 'mm/d',
-  43 => 'Aus/Ein',
-  44 => 'Nein/Ja',
-  46 => '°C',
-  50 => '€',
-  51 => '$',
-  52 => 'g/m³',
-  53 => '',
-  54 => '°',
-  56 => '°',
-  57 => 'Sek',
-  58 => '',
-  59 => '%',
-  60 => 'Uhr',
-  63 => 'A',
-  65 => 'mbar',
-  66 => 'Pa',
+   0 => '', 1 => '°C', 2 => 'W/m²', 3 => 'l/h', 4 => 'Sek', 5 => 'Min', 6 => 'l/Imp',
+   7 => 'K', 8 => '%', 10 => 'kW', 11 => 'kWh', 12 => 'MWh', 13 => 'V', 14 => 'mA',
+  15 => 'Std', 16 => 'Tage', 17 => 'Imp', 18 => 'kΩ', 19 => 'l', 20 => 'km/h',
+  21 => 'Hz', 22 => 'l/min', 23 => 'bar', 24 => '', 25 => 'km', 26 => 'm', 27 => 'mm',
+  28 => 'm³', 35 => 'l/d', 36 => 'm/s', 37 => 'm³/min', 38 => 'm³/h', 39 => 'm³/d',
+  40 => 'mm/min', 41 => 'mm/h', 42 => 'mm/d', 43 => 'Aus/Ein', 44 => 'Nein/Ja',
+  46 => '°C', 50 => '€', 51 => '$', 52 => 'g/m³', 53 => '', 54 => '°', 56 => '°',
+  57 => 'Sek', 58 => '', 59 => '%', 60 => 'Uhr', 63 => 'A', 65 => 'mbar', 66 => 'Pa',
   67 => 'ppm'
 );
 
@@ -299,8 +255,12 @@ sub TA_CMI_JSON_extractReadings {
     $jsonKey = 'Data_'.$dataKey.'_'.$idx.'_Value_RAS';
     my $readingRas = $keyValues->{$jsonKey};
     if (defined($readingRas)) {
-      my $ras = (defined($rasStates{$readingRas}) ? $rasStates{$readingRas} : undef);
-      readingsBulkUpdateIfChanged($hash, $readingName . '_RAS', $ras) if ($ras);
+      readingsBulkUpdateIfChanged($hash, $readingName . '_RAS', $readingRas);
+
+      if ($inclPrettyReadings) {
+        my $ras = (defined($rasStates{$readingRas}) ? $rasStates{$readingRas} : undef);
+        readingsBulkUpdateIfChanged($hash, $readingName . '_RAS_Pretty', $ras) if ($ras);
+      }
     }
 
     my $unit;
