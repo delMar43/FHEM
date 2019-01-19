@@ -136,7 +136,7 @@ sub COE_Node_HandleData {
   #    Log3 $name, 3, "CanOverEthernet ($name) - $readingsEntry";
     
     my @entry = split /=/, $readingsEntry;
-    $mappingHash{$entry[0]} = $entry[1];
+    $mappingHash{$entry[0]} = makeReadingName($entry[1]);
   }
 
   # parsing byte values
@@ -164,8 +164,8 @@ sub COE_Node_HandleData {
 
     if ($existingConfig) {
       if ($canNodePartId > 0) {
-        my $reading = makeReadingName($mappingHash{$entryId});
-        if ($type == 1 || $type == 3) {
+        my $reading = $mappingHash{$entryId};
+        if ($type == 1) {
           $value = (substr $value, 0, (length $value)-1) . "." . (substr $value, -1);
         } elsif ($type == 13) {
           $value = (substr $value, 0, (length $value)-2) . "." . (substr $value, -2);
