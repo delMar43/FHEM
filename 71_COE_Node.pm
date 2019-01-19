@@ -24,7 +24,7 @@
 # This module is designed to work as a logical device in connection with
 # 70_CanOverEthernet as a physical device.
 #
-# Discussed in FHEM Forum: 
+# Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,96170.0.html
 #
 # $Id:
 #
@@ -118,11 +118,11 @@ sub COE_Node_HandleData {
 
   my $readings = AttrVal($name, 'readingsConfig', undef);
   if (! defined $readings) {
-    Log3 $name, 3, "COE_Node ($name) - No config found. Please set readingsConfig accordingly.";
+    Log3 $name, 0, "COE_Node ($name) - No config found. Please set readingsConfig accordingly.";
     return undef;
   }
 
-  Log3 $name, 3, "COE_Node ($name) - Config found: $readings";
+  Log3 $name, 4, "COE_Node ($name) - Config found: $readings";
 
   # incoming data: 05011700f3000000000001010000  
   # extract readings from config, so we know, how to assign each value to a reading
@@ -130,58 +130,70 @@ sub COE_Node_HandleData {
   # format: index=name
   # example
   # 1=T.Solar 2=T.Solar_RL
-  my %mappingHash = ();
+  $hash->{helper}{mapping} = ();
   my @readingsArray = split / /, $readings;
   foreach my $readingsEntry (@readingsArray) {
-  #    Log3 $name, 3, "CanOverEthernet ($name) - $readingsEntry";
+    Log3 $name, 5, "COE_Node ($name) - $readingsEntry";
     
     my @entry = split /=/, $readingsEntry;
-    $mappingHash{$entry[0]} = makeReadingName($entry[1]);
+    $hash->{helper}{mapping}{$entry[0]} = makeReadingName($entry[1]);
   }
 
-  # parsing byte values
-
   if ($canNodeId != $hash->{helper}{CAN_NODE_ID}) {
-    Log3 $name, 3, "COE_Node ($name) - defined nodeId $hash->{canNodeId} != message-nodeId $canNodeId. Skipping message.";
+    Log3 $name, 0, "COE_Node ($name) - defined nodeId $hash->{canNodeId} != message-nodeId $canNodeId. Skipping message.";
     return undef;
   }
 
+  if ( $canNodePartId > 0 ) {
+    COE_Node_HandleAnalogValues($hash, $canNodePartId, @valuesAndTypes);
+  } else {
+    Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][] digital value. skipping for now";    
+  }
+
+  readingsEndUpdate($hash, 1);
+}
+
+sub COE_Node_HandleAnalogValues {
+  my ( $hash, $canNodePartId, @valuesAndTypes ) = @_;
+
   my @values = @valuesAndTypes[0..3];
   my @types = @valuesAndTypes[4..7];
+  my $canNodeId = $hash->{helper}{CAN_NODE_ID};
+  my $name = $hash->{NAME};
 
   #iterate through data entries. 4 entries max per incoming UDP packet
   readingsBeginUpdate($hash);
   for (my $i=0; $i < 4; $i++) {
     my $outputId = ($i+($canNodePartId-1)*4+1);
     my $entryId = $outputId;
-    my $existingConfig = exists $mappingHash{$entryId};
+    my $existingConfig = exists $hash->{helper}{mapping}{$entryId};
     my $value = $values[$i];
     my $type = $types[$i];
 
-    if (not $canNodePartId) {
-      Log3 $name, 3, "nix is";
-    }
-
     if ($existingConfig) {
-      if ($canNodePartId > 0) {
-        my $reading = $mappingHash{$entryId};
-        if ($type == 1) {
-          $value = (substr $value, 0, (length $value)-1) . "." . (substr $value, -1);
-        } elsif ($type == 13) {
-          $value = (substr $value, 0, (length $value)-2) . "." . (substr $value, -2);
-        }
-        readingsBulkUpdateIfChanged( $hash, $reading, $value );
 
-        Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][type=$type][value=$value]  configured: $reading";
-      } else {
-        Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][type=$type] digital value. skipping for now";
+      if ($type == 1) {
+        $value = (substr $value, 0, (length $value)-1) . "." . (substr $value, -1);
+      } elsif ($type == 13) {
+        $value = (substr $value, 0, (length $value)-2) . "." . (substr $value, -2);
       }
 
+      if ( COE_Node_BeginsWith($value, '.') ) {
+          $value = "0$value";
+      }
+
+      my $reading = $hash->{helper}{mapping}{$entryId};
+      readingsBulkUpdateIfChanged( $hash, $reading, $value );
+
+      Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][type=$type][value=$value]  configured: $reading";
     } else {
       Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][type=$type][value=$value]  $entryId not configured. Skipping.";
     }
   }
-  readingsEndUpdate($hash, 1);
+}
+
+sub COE_Node_BeginsWith {
+    return substr($_[0], 0, length($_[1])) eq $_[1];
 }
 
 sub COE_Node_Undef {

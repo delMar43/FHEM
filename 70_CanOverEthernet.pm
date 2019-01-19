@@ -24,7 +24,7 @@
 # This module is designed to work as a physical device in connection with 71_COE_Node
 # as a logical device.
 #
-# Discussed in FHEM Forum: 
+# Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,96170.0.html
 #
 # $Id
 #
@@ -60,15 +60,12 @@ sub CanOverEthernet_Define($$) {
  
   my $name   = $a[0];
   my $module = $a[1];
-#  my $nodeId = $a[2];
  
   if(@a < 2 || @a > 2) {
      my $msg = "CanOverEthernet ($name) - Wrong syntax: define <name> CanOverEthernet";
      Log3 undef, 1, $msg;
      return $msg;
   }
-
-#  $hash->{canNodeId} = $nodeId;
 
   DevIo_CloseDev($hash);
 
