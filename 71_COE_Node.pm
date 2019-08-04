@@ -92,7 +92,7 @@ sub COE_Node_Parse {
   my ( $io_hash, $buf) = @_;
   my $ioDevName = $io_hash->{NAME};
 
-  my ( $canNodeId, $canNodePartId, @valuesAndTypes ) = unpack 'C C S S S S C C C C', $buf;
+  my ( $canNodeId, $canNodePartId, @valuesAndTypes ) = unpack 'C C s s s s C C C C', $buf;
   my $logDevAddress = $ioDevName.'_'.$canNodeId;
 
   # wenn bereits eine Gerätedefinition existiert (via Definition Pointer aus Define-Funktion)
