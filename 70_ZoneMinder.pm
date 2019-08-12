@@ -25,7 +25,7 @@
 #
 # Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,91847.0.html
 #
-# $Id: 70_ZoneMinder.pm 18159 2019-01-06 10:25:11Z delmar $
+# $Id: 70_ZoneMinder.pm 18788 2019-03-04 17:54:15Z delmar $
 #
 ##############################################################################
 
@@ -53,7 +53,7 @@ sub ZoneMinder_Initialize {
   $hash->{WriteFn}   = "ZoneMinder_Write";
   $hash->{ReadyFn}   = "ZoneMinder_Ready";
 
-  $hash->{AttrList} = "usePublicUrlForZmWeb:0,1 loginInterval publicAddress webConsoleContext " . $readingFnAttributes;
+  $hash->{AttrList} = "apiTimeout usePublicUrlForZmWeb:0,1 loginInterval publicAddress webConsoleContext " . $readingFnAttributes;
   $hash->{MatchList} = { "1:ZM_Monitor" => "^.*" };
 
   Log3 '', 3, "ZoneMinder - Initialize done ...";
@@ -163,11 +163,13 @@ sub ZoneMinder_API_Login {
   my $usePublicUrlForZmWeb = AttrVal($name, 'usePublicUrlForZmWeb', 0);
   my $zmWebUrl = ZoneMinder_getZmWebUrl($hash, $usePublicUrlForZmWeb);
   my $loginUrl = "$zmWebUrl/index.php?username=$username&password=$password&action=login&view=console";
+  my $apiTimeout = AttrVal($name, 'apiTimeout', 5);
 
   Log3 $name, 4, "ZoneMinder ($name) - loginUrl: $loginUrl";
   my $apiParam = {
     url => $loginUrl,
     method => "POST",
+    timeout => $apiTimeout,
     callback => \&ZoneMinder_API_Login_Callback,
     hash => $hash
   };
@@ -253,12 +255,14 @@ sub ZoneMinder_API_ReadHostInfo_Callback {
     $hash->{ZM_VERSION} = 'error';
     $hash->{ZM_API_VERSION} = 'error';
   } elsif($data ne "") {
-      
+      $data =~ s/\R//g;
+
       my $zmVersion = ZoneMinder_GetConfigValueByKey($hash, $data, 'version');
       if (not $zmVersion) {
         $zmVersion = 'unknown';
       }
       $hash->{ZM_VERSION} = $zmVersion;
+      $hash->{model} = $zmVersion;
 
       my $zmApiVersion = ZoneMinder_GetConfigValueByKey($hash, $data, 'apiversion');
       if (not $zmApiVersion) {
@@ -279,6 +283,8 @@ sub ZoneMinder_API_ReadHostLoad_Callback {
     Log3 $name, 0, "error while requesting ".$param->{url}." - $err";
     readingsSingleUpdate($hash, 'CPU_Load', 'error', 0);
   } elsif($data ne "") {
+    $data =~ s/\R//g;
+
     my $load = ZoneMinder_GetConfigArrayByKey($hash, $data, 'load');
     readingsSingleUpdate($hash, 'CPU_Load', $load, 1);
 
@@ -297,6 +303,8 @@ sub ZoneMinder_API_ReadConfig_Callback {
   if($err ne "") {
     Log3 $name, 0, "error while requesting ".$param->{url}." - $err";
   } elsif($data ne "") {
+      $data =~ s/\R//g;
+
       my $zmPathZms = ZoneMinder_GetConfigValueByName($hash, $data, 'ZM_PATH_ZMS');
       if ($zmPathZms) {
         $zmPathZms =~ s/\\//g;
@@ -315,19 +323,21 @@ sub ZoneMinder_API_ReadConfig_Callback {
 
 sub ZoneMinder_GetConfigValueByKey {
   my ($hash, $config, $key) = @_;
-  my $searchString = '"'.$key.'":"';
+  my $searchString = qr/"$key":\s*"/;
   return ZoneMinder_GetFromJson($hash, $config, $searchString, '"');
 }
 
 sub ZoneMinder_GetConfigArrayByKey {
   my ($hash, $config, $key) = @_;
-  my $searchString = '"'.$key.'":[';
+#  my $searchString = '"'.$key.'":[';
+my $searchString = qr/"$key":\s*\[/;
   return ZoneMinder_GetFromJson($hash, $config, $searchString, ']');
 }
 
 sub ZoneMinder_GetConfigValueByName {
   my ($hash, $config, $key) = @_;
-  my $searchString = '"Name":"'.$key.'","Value":"';
+#  my $searchString = '"Name":"'.$key.'","Value":"';
+my $searchString = qr/"Name":"$key","Value":"/;
   return ZoneMinder_GetFromJson($hash, $config, $searchString, '"');
 }
 
@@ -336,15 +346,30 @@ sub ZoneMinder_GetFromJson {
   my $name = $hash->{NAME};
 
 #  Log3 $name, 5, "json: $config";
-  my $searchLength = length($searchString);
-  my $startIdx = index($config, $searchString);
-  Log3 $name, 5, "ZoneMinder ($name) - $searchString found at $startIdx";
-  $startIdx += $searchLength;
-  my $endIdx = index($config, $endChar, $startIdx);
-  my $frame = $endIdx - $startIdx;
-  my $searchResult = substr $config, $startIdx, $frame;
+#  my $searchLength = length($searchString);
+  my $searchLength;
+  my $prema;
 
-  Log3 $name, 5, "ZoneMinder ($name) - looking for $searchString - length: $searchLength. start: $startIdx. end: $endIdx. result: $searchResult";
+#  my $startIdx = index($config, $searchString);
+  my $startIdx;
+  if (my ($match) = $config =~ $searchString) {
+    $prema = $';
+    my $ma = $&;
+    my $poma = $`;
+#    Log3 $name, 1, "ZM_TEST prematch: $prema match: $ma postmatch: $poma startIdx: $startIdx";
+    $searchLength = length($ma);
+  } else {
+    Log3 $name, 1, "ZoneMinder ($name) - $searchString NOT found. Please report, this is a problem.";
+    return;
+  }
+
+  Log3 $name, 5, "ZoneMinder ($name) - $searchString found.";
+
+  my $searchResult = substr $prema, 0;
+  my $endIdx = index($searchResult, $endChar);
+  $searchResult = substr $searchResult, 0, $endIdx;
+
+#  Log3 $name, 5, "ZoneMinder ($name) - looking for $searchString - length: $searchLength. start: $startIdx. end: $endIdx. result: $searchResult";
   
   return $searchResult;
 }
@@ -354,6 +379,7 @@ sub ZoneMinder_API_UpdateMonitors_Callback {
   my $hash = $param->{hash};
   my $name = $hash->{NAME};
 
+  $data =~ s/\R//g;
   my @monitors = split(/\{"Monitor"\:\{/, $data);
 
   foreach my $monitorData (@monitors) {
@@ -386,6 +412,7 @@ sub ZoneMinder_API_CreateMonitors_Callback {
   my $hash = $param->{hash};
   my $name = $hash->{NAME};
 
+  $data =~ s/\R//g;
   my @monitors = split(/\{"Monitor"\:\{/, $data);
 
   foreach my $monitorData (@monitors) {
@@ -500,6 +527,8 @@ sub ZoneMinder_API_ChangeMonitorState_Callback {
   my $hash = $param->{hash};
   my $name = $hash->{NAME};
   if ($data) {
+    $data =~ s/\R//g;
+
     my $monitorId = $param->{zmMonitorId};
     my $logDevHash = $modules{ZM_Monitor}{defptr}{$name.'_'.$monitorId};
     my $function = $param->{zmFunction};
@@ -523,6 +552,8 @@ sub ZoneMinder_API_QueryEventDetails_Callback {
   my ($param, $err, $data) = @_;
   my $hash = $param->{hash};
   my $name = $hash->{NAME};
+
+  $data =~ s/\R//g;
 
   my $zmMonitorId = ZoneMinder_GetConfigValueByKey($hash, $data, 'MonitorId');
   my $zmEventId = ZoneMinder_GetConfigValueByKey($hash, $data, 'Id');
@@ -750,6 +781,7 @@ sub ZoneMinder_Ready {
   <b>Attributes</b>
   <br><br>
   <ul>
+    <li><code>apiTimeout &lt;seconds&gt;</code><br>This defines the request timeout in seconds for calls to the ZoneMinder API (right now, only for the login)</li>
     <li><code>publicAddress &lt;address&gt;</code><br>This configures public accessibility of your LAN (eg your ddns address). Define a valid URL here, eg <code>https://my.own.domain:2344</code></li>
     <li><code>webConsoleContext &lt;path&gt;</code><br>If not set, this defaults to <code>/zm</code>. This is used for building the URL to the ZoneMinder web console.</li>
     <li><code>usePublicUrlForZmWeb</code><br>If a public address is defined, this setting will use the public address for connecting to ZoneMinder API, instead of trying to use the IP-address.</li>
