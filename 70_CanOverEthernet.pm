@@ -103,7 +103,7 @@ sub CanOverEthernet_Read($) {
   my $data;
 
   $hash->{STATE} = 'Last: '.gmtime();
-  $hash->{CD}->recv($buf, 256);
+  $hash->{CD}->recv($buf, 16);
   $data = unpack('H*', $buf);
   Log3 $name, 5, "CanOverEthernet ($name) - Client said $data";
 
@@ -121,11 +121,45 @@ sub CanOverEthernet_Get ($@) {
 
 sub CanOverEthernet_Set ($@)
 {
-  my ( $hash, $param ) = @_;
+  my ( $hash, $name, $cmd, $args ) = @_;
 
-  my $name = $hash->{NAME};
+  if ( 'sendData' eq $cmd ) {
+    CanOverEthernet_parseSendDataCommand( $hash, $name, $args );
+    
+  }
+
   Log3 $name, 5, "CanOverEthernet ($name) - Set done ...";
-  return undef;
+  return 'sendData';
+}
+
+sub CanOverEthernet_parseSendDataCommand {
+  my ( $hash, $name, @args ) = @_;
+
+  # args: Target-IP Target-Node Index=Value
+  
+  my $targetIp = $args[0];
+  my $targetNode = $args[1];
+  
+  my $socket = new IO::Socket::INET (
+    PeerAddr=>$targetIp,  #PeerAddr von $sock ist eingegebener Paramenter $ipaddr
+    PeerPort=>5441,        #PeerPort von $sock ist eingegebener Paramenter $port
+    Proto=>'udp'            #Transportprotokoll: UDP
+  );
+  
+  if ($socket) {
+
+    my $out = pack('CCS<S<S<S<CCCC', $targetNode,5,22.7,0,0,0,1,0,0,0);
+
+    $socket->send($out, 16);
+    $socket->close();
+    Log3 $name, 4, "CanOverEthernet ($name) - sendData done.";
+
+  } else {
+    Log3 $name, 0, "CanOverEthernet ($name) - sendData failed to create network socket";
+    return;
+
+  }
+  
 }
 
 1;
@@ -175,6 +209,6 @@ sub CanOverEthernet_Set ($@)
     </ul>
     Die eingehenden Daten werden als readings in eigenen COE_Node devices gespeichert.
     Diese devices werden automatisch angelegt, sobald Daten dafür empfangen werden.
-=end html
+=end html_DE
 
 =cut

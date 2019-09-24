@@ -163,7 +163,7 @@ sub COE_Node_HandleAnalogValues {
 
   #iterate through data entries. 4 entries max per incoming UDP packet
   for (my $i=0; $i < 4; $i++) {
-    my $outputId = ($i+($canNodePartId-1)*4+1);
+    my $outputId = ($i+($canNodePartId-1)*4 +1);
     my $entryId = $outputId;
     my $existingConfig = exists $hash->{helper}{mapping}{$entryId};
     my $value = $values[$i];
@@ -184,9 +184,9 @@ sub COE_Node_HandleAnalogValues {
       my $reading = $hash->{helper}{mapping}{$entryId};
       readingsBulkUpdateIfChanged( $hash, $reading, $value );
 
-      Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][type=$type][value=$value]  configured: $reading";
+      Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][$entryId][type=$type][value=$value]  configured: $reading";
     } else {
-      Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][type=$type][value=$value]  $entryId not configured. Skipping.";
+      Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][$entryId][type=$type][value=$value]  $entryId not configured. Skipping.";
     }
   }
 }
@@ -230,10 +230,64 @@ sub COE_Node_Set {
 =pod
 =item device
 =item summary Single CanOverEthernet node which is created automatically by CanOverEthernet
-=item summary_DE Repräsentiert einen einzelnen CanOverEthernet Node, welcher automatisch erstellt wird.
+=item summary_DE Repräsentiert einen einzelnen CanOverEthernet Node. Wird normalerweise automatisch erstellt.
 
 =begin html
 
+<a name="COE_Node"></a>
+<h3>COE_Node</a>
+
+<a name="COE_Nodedefine"></a>
+  <b>Define</b>
+  <ul>
+    <code>define &lt;name&gt; COE_Node &lt;CAN-Node ID&gt;</code>
+    <br><br>
+    Defines a CanOverEthernet node. FHEM will automatically create these.
+    <br>
+    Example:
+    <ul>
+      <code>define COE_Node_coe_2 COE_Node 2</code>
+    </ul>
+    Assigment of readings to incoming values is done in the attribue 'readingsConfig'.
+
+  <br><br>
+
+<a name="COE_Nodeattr"></a>
+  <b>Attributes</b>
+  <br><br>
+  <ul>
+    <li><code>readingsConfig {index=reading-name}</code><br>This maps received values to readings. eg <code>1=Flowrate_Solar 2=T.Solar_Backflow</code></li>
+  </ul>
+
 =end html
 
+=begin html_DE
 
+<a name="COE_Node"></a>
+<h3>COE_Node</a>
+
+<a name="COE_Nodedefine"></a>
+  <b>Define</b>
+  <ul>
+    <code>define &lt;name&gt; COE_Node &lt;CAN-Node ID&gt;</code>
+    <br><br>
+    Repräsentiert einen einzelnen CanOverEthernet Node. Wird normalerweise automatisch erstellt.
+    <br>
+    Beispiel:
+    <ul>
+      <code>define COE_Node_coe_2 COE_Node 2</code>
+    </ul>
+    Die eintreffenden Werte müssen noch im Attribut 'readingsConfig' einem Reading zugewiesen werden.
+
+  <br><br>
+
+<a name="COE_Nodeattr"></a>
+  <b>Attributes</b>
+  <br><br>
+  <ul>
+    <li><code>readingsConfig {index=reading-name}</code><br>Ordnet Werte einem Reading zu. zB <code>1=Durchfluss_Solar 2=T.Solar_Rücklauf</code></li>
+  </ul>
+
+=end html_DE
+
+=cut
