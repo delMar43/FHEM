@@ -136,6 +136,7 @@ sub CanOverEthernet_Set ($@)
 =item summary_DE CanOverEthernet empfängt CoE UDP broadcasts
 
 =begin html
+
 <a name="CanOverEthernet"></a>
 <h3>CanOverEthernet</a>
 
@@ -157,6 +158,7 @@ sub CanOverEthernet_Set ($@)
 =end html
 
 =begin html_DE
+
 <a name="CanOverEthernet"></a>
 <h3>CanOverEthernet</a>
 
