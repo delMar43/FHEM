@@ -37,15 +37,12 @@ use warnings;
 
 sub COE_Node_Initialize {
   my ($hash) = @_;
-#  $hash->{NotifyOrderPrefix} = "71-";
 
   $hash->{DefFn}       = "COE_Node_Define";
   $hash->{ParseFn}     = "COE_Node_Parse";
   $hash->{UndefFn}     = "COE_Node_Undef";
   $hash->{GetFn}       = "COE_Node_Get";
   $hash->{SetFn}       = "COE_Node_Set";
-#  $hash->{FW_detailFn} = "COE_Node_DetailFn";
-#  $hash->{NotifyFn}    = "COE_Node_Notify";
 
   $hash->{AttrList} = "readingsConfig " . $readingFnAttributes;
   $hash->{Match} = "^.*";
@@ -55,7 +52,6 @@ sub COE_Node_Initialize {
 
 sub COE_Node_Define {
   my ( $hash, $def ) = @_;
-#  $hash->{NOTIFYDEV} = "TYPE=CanOverEthernet";
 
   my @a = split( "[ \t][ \t]*", $def );
  
@@ -70,13 +66,12 @@ sub COE_Node_Define {
   }
 
   $hash->{NAME} = $name;
-#  readingsSingleUpdate($hash, "state", "idle", 1);
 
   AssignIoPort($hash);
   
   my $ioDevName = $hash->{IODev}{NAME};
   my $logDevAddress = $ioDevName.'_'.$canNodeId;
-  # Adresse rückwärts dem Hash zuordnen (für ParseFn)
+
   Log3 $name, 5, "COE_Node ($name) - Define: Logical device address: $logDevAddress";
   $modules{COE_Node}{defptr}{$logDevAddress} = $hash;
   
@@ -92,12 +87,13 @@ sub COE_Node_Parse {
   my ( $io_hash, $buf) = @_;
   my $ioDevName = $io_hash->{NAME};
 
-  my ( $canNodeId, $canNodePartId, @valuesAndTypes ) = unpack 'C C s s s s C C C C', $buf;
+  my ( $canNodeId, $canNodePartId ) = unpack 'C C', $buf;
+  my $bytes = substr $buf, 2;
   my $logDevAddress = $ioDevName.'_'.$canNodeId;
 
   # wenn bereits eine Gerätedefinition existiert (via Definition Pointer aus Define-Funktion)
   if(my $hash = $modules{COE_Node}{defptr}{$logDevAddress}) {
-    COE_Node_HandleData($hash, $canNodeId, $canNodePartId, @valuesAndTypes);
+    COE_Node_HandleData($hash, $canNodeId, $canNodePartId, $bytes);
 
     return $hash->{NAME}; 
 
@@ -113,7 +109,7 @@ sub COE_Node_Parse {
 }
 
 sub COE_Node_HandleData {
-  my ( $hash, $canNodeId, $canNodePartId, @valuesAndTypes ) = @_;
+  my ( $hash, $canNodeId, $canNodePartId, $bytes ) = @_;
   my $name = $hash->{NAME};
 
   my $readings = AttrVal($name, 'readingsConfig', undef);
@@ -144,17 +140,21 @@ sub COE_Node_HandleData {
     return undef;
   }
 
+  readingsBeginUpdate($hash);
   if ( $canNodePartId > 0 ) {
-    COE_Node_HandleAnalogValues($hash, $canNodePartId, @valuesAndTypes);
+    COE_Node_HandleAnalogValues($hash, $canNodePartId, $bytes);
   } else {
-    Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][] digital value. skipping for now";    
+    COE_Node_HandleDigitalValues($hash, $canNodePartId, $bytes);
+#    Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][] digital value. skipping for now";    
   }
-
   readingsEndUpdate($hash, 1);
+
 }
 
 sub COE_Node_HandleAnalogValues {
-  my ( $hash, $canNodePartId, @valuesAndTypes ) = @_;
+  my ( $hash, $canNodePartId, $bytes ) = @_;
+
+  my @valuesAndTypes = unpack 's s s s C C C C', $bytes;
 
   my @values = @valuesAndTypes[0..3];
   my @types = @valuesAndTypes[4..7];
@@ -162,7 +162,6 @@ sub COE_Node_HandleAnalogValues {
   my $name = $hash->{NAME};
 
   #iterate through data entries. 4 entries max per incoming UDP packet
-  readingsBeginUpdate($hash);
   for (my $i=0; $i < 4; $i++) {
     my $outputId = ($i+($canNodePartId-1)*4+1);
     my $entryId = $outputId;
@@ -192,6 +191,21 @@ sub COE_Node_HandleAnalogValues {
   }
 }
 
+sub COE_Node_HandleDigitalValues {
+  my ( $hash, $canNodePartId, $bytes ) = @_;
+  my $name = $hash->{NAME};
+  my $canNodeId = $hash->{helper}{CAN_NODE_ID};
+
+  my $values = unpack 'b*', $bytes;
+  my @bits = split //, $values;
+
+  for (my $i=0; $i < 16; $i++) {
+    my $reading = $hash->{helper}{mapping}{$i+1};
+    readingsBulkUpdateIfChanged( $hash, $reading, $bits[$i] );
+    Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][".($i+1)."] = $bits[$i]";
+  }
+}
+
 sub COE_Node_BeginsWith {
     return substr($_[0], 0, length($_[1])) eq $_[1];
 }
@@ -211,10 +225,15 @@ sub COE_Node_Set {
   return undef;
 }
 
-#sub COE_Node_DetailFn {
-#}
-
-#sub COE_Node_Notify {
-#}
-
 1;
+
+=pod
+=item device
+=item summary Single CanOverEthernet node which is created automatically by CanOverEthernet
+=item summary_DE Repräsentiert einen einzelnen CanOverEthernet Node, welcher automatisch erstellt wird.
+
+=begin html
+
+=end html
+
+

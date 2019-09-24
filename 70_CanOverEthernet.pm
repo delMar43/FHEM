@@ -103,9 +103,9 @@ sub CanOverEthernet_Read($) {
   my $data;
 
   $hash->{STATE} = 'Last: '.gmtime();
-  $hash->{CD}->recv($buf, 16);
+  $hash->{CD}->recv($buf, 256);
   $data = unpack('H*', $buf);
-  Log3 $name, 3, "CanOverEthernet ($name) - Client said $data";
+  Log3 $name, 5, "CanOverEthernet ($name) - Client said $data";
 
   Dispatch($hash, $buf);
 
@@ -115,7 +115,7 @@ sub CanOverEthernet_Get ($@) {
   my ( $hash, $param ) = @_;
 
   my $name = $hash->{NAME};
-  Log3 $name, 3, "CanOverEthernet ($name) - Get done ...";
+  Log3 $name, 5, "CanOverEthernet ($name) - Get done ...";
   return undef;
 }
 
@@ -124,29 +124,55 @@ sub CanOverEthernet_Set ($@)
   my ( $hash, $param ) = @_;
 
   my $name = $hash->{NAME};
-  Log3 $name, 3, "CanOverEthernet ($name) - Set done ...";
+  Log3 $name, 5, "CanOverEthernet ($name) - Set done ...";
   return undef;
 }
 
-# Eval-Rückgabewert für erfolgreiches
-# Laden des Moduls
 1;
 
-
-# Beginn der Commandref
-
 =pod
-=item [helper|device|command]
-=item summary Kurzbeschreibung in Englisch was CanOverEthernet steuert/unterstützt
-=item summary_DE Kurzbeschreibung in Deutsch was CanOverEthernet steuert/unterstützt
+=item [device]
+=item summary CanOverEthernet receives COE UDP broadcasts
+=item summary_DE CanOverEthernet empfängt CoE UDP broadcasts
 
 =begin html
- Englische Commandref in HTML
+<a name="CanOverEthernet"></a>
+<h3>CanOverEthernet</a>
+
+<a name="CanOverEthernetdefine"></a>
+  <b>Define</b>
+  <ul>
+    <code>define &lt;name&gt; CanOverEthernet</code>
+    <br><br>
+    Defines a CanOverEthernet device. FHEM will start listening to UDP broadcast
+    on port 5441.
+    <br>
+    Example:
+    <ul>
+      <code>define coe CanOverEthernet</code>
+    </ul>
+    Actual readings for the incoming data will be written to COE_Node devices, which
+    are created on-the-fly.    
+
 =end html
 
 =begin html_DE
- Deustche Commandref in HTML
+<a name="CanOverEthernet"></a>
+<h3>CanOverEthernet</a>
+
+<a name="CanOverEthernetdefine"></a>
+  <b>Define</b>
+  <ul>
+    <code>define &lt;name&gt; CanOverEthernet</code>
+    <br><br>
+    Erstellt ein CanOverEthernet device. FHEM empfängt auf Port 5441 UDP broadcast.
+    <br>
+    Beispiel:
+    <ul>
+      <code>define coe CanOverEthernet</code>
+    </ul>
+    Die eingehenden Daten werden als readings in eigenen COE_Node devices gespeichert.
+    Diese devices werden automatisch angelegt, sobald Daten dafür empfangen werden.
 =end html
 
-# Ende der Commandref
 =cut
