@@ -26,7 +26,7 @@
 #
 # Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,96170.0.html
 #
-# $Id
+# $Id: 70_CanOverEthernet.pm 20239 2019-09-24 18:03:38Z delmar $
 #
 ##############################################################################
 package main;
@@ -105,7 +105,7 @@ sub CanOverEthernet_Read($) {
   $hash->{STATE} = 'Last: '.gmtime();
   $hash->{CD}->recv($buf, 16);
   $data = unpack('H*', $buf);
-  Log3 $name, 5, "CanOverEthernet ($name) - Client said $data";
+  Log3 $name, 4, "CanOverEthernet ($name) - Client said $data";
 
   Dispatch($hash, $buf);
 
@@ -115,20 +115,18 @@ sub CanOverEthernet_Get ($@) {
   my ( $hash, $param ) = @_;
 
   my $name = $hash->{NAME};
-  Log3 $name, 5, "CanOverEthernet ($name) - Get done ...";
   return undef;
 }
 
 sub CanOverEthernet_Set ($@)
 {
-  my ( $hash, $name, $cmd, $args ) = @_;
+  my ( $hash, $name, $cmd, @args ) = @_;
 
   if ( 'sendData' eq $cmd ) {
-    CanOverEthernet_parseSendDataCommand( $hash, $name, $args );
+    CanOverEthernet_parseSendDataCommand( $hash, $name, @args );
     
   }
 
-  Log3 $name, 5, "CanOverEthernet ($name) - Set done ...";
   return 'sendData';
 }
 
@@ -143,16 +141,22 @@ sub CanOverEthernet_parseSendDataCommand {
   my $socket = new IO::Socket::INET (
     PeerAddr=>$targetIp,  #PeerAddr von $sock ist eingegebener Paramenter $ipaddr
     PeerPort=>5441,        #PeerPort von $sock ist eingegebener Paramenter $port
-    Proto=>'udp'            #Transportprotokoll: UDP
+    Proto=>"udp"            #Transportprotokoll: UDP
   );
+
+  Log3 $name, 4, "CanOverEthernet ($name) - UDP Socket opened";
+  
   
   if ($socket) {
 
-    my $out = pack('CCS<S<S<S<CCCC', $targetNode,5,22.7,0,0,0,1,0,0,0);
+    my $out = pack('CCS<S<S<S<CCCC', $targetNode,1,227,0,0,0,1,0,0,0);
 
-    $socket->send($out, 16);
-    $socket->close();
+    my $data = unpack('H*', $out);
+    Log3 $name, 4, "CanOverEthernet ($name) - sendData sending $data to IP $targetIp, CAN-Node $targetNode";
+
+    $socket->send($out);
     Log3 $name, 4, "CanOverEthernet ($name) - sendData done.";
+    $socket->close();
 
   } else {
     Log3 $name, 0, "CanOverEthernet ($name) - sendData failed to create network socket";
@@ -172,7 +176,7 @@ sub CanOverEthernet_parseSendDataCommand {
 =begin html
 
 <a name="CanOverEthernet"></a>
-<h3>CanOverEthernet</a>
+<h3>CanOverEthernet</h3>
 
 <a name="CanOverEthernetdefine"></a>
   <b>Define</b>
@@ -188,13 +192,14 @@ sub CanOverEthernet_parseSendDataCommand {
     </ul>
     Actual readings for the incoming data will be written to COE_Node devices, which
     are created on-the-fly.    
+  </ul>
 
 =end html
 
 =begin html_DE
 
 <a name="CanOverEthernet"></a>
-<h3>CanOverEthernet</a>
+<h3>CanOverEthernet</h3>
 
 <a name="CanOverEthernetdefine"></a>
   <b>Define</b>
@@ -209,6 +214,8 @@ sub CanOverEthernet_parseSendDataCommand {
     </ul>
     Die eingehenden Daten werden als readings in eigenen COE_Node devices gespeichert.
     Diese devices werden automatisch angelegt, sobald Daten dafür empfangen werden.
+  </ul>
+
 =end html_DE
 
 =cut
