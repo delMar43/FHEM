@@ -38,10 +38,8 @@ use DevIo;
 
 sub CanOverEthernet_Initialize($) {
   my ($hash) = @_;
-
-#  require "$attr{global}{modpath}/FHEM/DevIo.pm";
    
-  $hash->{GetFn}     = "CanOverEthernet_Get";
+#  $hash->{GetFn}     = "CanOverEthernet_Get";
   $hash->{SetFn}     = "CanOverEthernet_Set";
   $hash->{DefFn}     = "CanOverEthernet_Define";
   $hash->{UndefFn}   = "CanOverEthernet_Undef";
@@ -77,7 +75,7 @@ sub CanOverEthernet_Define($$) {
   my $conn = IO::Socket::INET->new(Proto=>"udp",LocalPort=>$portno);
  
   $hash->{FD}    = $conn->fileno();
-  $hash->{CD}    = $conn;         # sysread / close won't work on fileno
+  $hash->{CD}    = $conn;
   $selectlist{$name} = $hash;
  
   Log3 $name, 3, "CanOverEthernet ($name) - Awaiting UDP connections on port $portno\n";
@@ -103,7 +101,7 @@ sub CanOverEthernet_Read($) {
   my $data;
 
   $hash->{STATE} = 'Last: '.gmtime();
-  $hash->{CD}->recv($buf, 16);
+  $hash->{CD}->recv($buf, 14);
   $data = unpack('H*', $buf);
   Log3 $name, 4, "CanOverEthernet ($name) - Client said $data";
 
@@ -111,12 +109,12 @@ sub CanOverEthernet_Read($) {
 
 }
 
-sub CanOverEthernet_Get ($@) {
-  my ( $hash, $param ) = @_;
+#sub CanOverEthernet_Get ($@) {
+#  my ( $hash, $param ) = @_;
 
-  my $name = $hash->{NAME};
-  return undef;
-}
+#  my $name = $hash->{NAME};
+#  return undef;
+#}
 
 sub CanOverEthernet_Set ($@)
 {
@@ -133,15 +131,56 @@ sub CanOverEthernet_Set ($@)
 sub CanOverEthernet_parseSendDataCommand {
   my ( $hash, $name, @args ) = @_;
 
-  # args: Target-IP Target-Node Index=Value
+  # args: Target-IP Target-Node Index=Value;Type
   
   my $targetIp = $args[0];
   my $targetNode = $args[1];
+  my @valuesAndTypes = @args[2..$#args];
+  my @values;
+  my @types;
+  my $page;
+
+  for (my $i=0; $i <= $#valuesAndTypes; $i++) {
+    my ( $index, $value, $type ) = split /[=;]/, $valuesAndTypes[$i];
+
+    if ( $index < 0 || $index > 32 ) {
+      Log3 $name, 0, "CanOverEthernet ($name) - sendData: index $index is out of bounds [1-32]. Value will not be sent.";
+      continue;
+    }
+
+    my $pIndex; #index inside of page (eg 18 is pIndex 2 on page 1)
+    if ( $index > 16 ) { # analog values here. also check for type
+
+      if ( $index < 21 ) {
+        $page = 1;
+      } elsif ( $index < 25 ) {
+        $page = 2;
+      } elsif ( $index < 29 ) {
+        $page = 3;
+      } elsif ( $index < 33 ) {
+        $page = 4;
+      }
+
+      $pIndex = $index -16 - (($page-1)*4) -1;
+      $types[$page][$pIndex] = $type;
+    } else { # digital values
+
+      $page = 0;
+      $pIndex = $index -1;
+    }
+
+    $values[$page][$pIndex] = $value;
+#    Log3 $name, 4, "CanOverEthernet ($name) - $index = $value. type=$type";
+  }
+
+  Log3 $name, 4, "CanOverEthernet ($name) - valuesAndTypes: @valuesAndTypes";
+  return;
+  
   
   my $socket = new IO::Socket::INET (
-    PeerAddr=>$targetIp,  #PeerAddr von $sock ist eingegebener Paramenter $ipaddr
-    PeerPort=>5441,        #PeerPort von $sock ist eingegebener Paramenter $port
-    Proto=>"udp"            #Transportprotokoll: UDP
+    PeerAddr=>$targetIp,
+    PeerPort=>5441,
+    Proto=>"udp"
   );
 
   Log3 $name, 4, "CanOverEthernet ($name) - UDP Socket opened";

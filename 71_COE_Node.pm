@@ -26,7 +26,7 @@
 #
 # Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,96170.0.html
 #
-# $Id:
+# $Id: 71_COE_Node.pm 20239 2019-09-24 18:03:38Z delmar $
 #
 ##############################################################################
 
@@ -230,12 +230,12 @@ sub COE_Node_Set {
 =pod
 =item device
 =item summary Single CanOverEthernet node which is created automatically by CanOverEthernet
-=item summary_DE Repräsentiert einen einzelnen CanOverEthernet Node. Wird normalerweise automatisch erstellt.
+=item summary_DE Ein einzelner CanOverEthernet Node. Wird automatisch erstellt.
 
 =begin html
 
 <a name="COE_Node"></a>
-<h3>COE_Node</a>
+<h3>COE_Node</h3>
 
 <a name="COE_Nodedefine"></a>
   <b>Define</b>
@@ -249,7 +249,7 @@ sub COE_Node_Set {
       <code>define COE_Node_coe_2 COE_Node 2</code>
     </ul>
     Assigment of readings to incoming values is done in the attribue 'readingsConfig'.
-
+  </ul>
   <br><br>
 
 <a name="COE_Nodeattr"></a>
@@ -264,7 +264,7 @@ sub COE_Node_Set {
 =begin html_DE
 
 <a name="COE_Node"></a>
-<h3>COE_Node</a>
+<h3>COE_Node</h3>
 
 <a name="COE_Nodedefine"></a>
   <b>Define</b>
@@ -278,7 +278,7 @@ sub COE_Node_Set {
       <code>define COE_Node_coe_2 COE_Node 2</code>
     </ul>
     Die eintreffenden Werte müssen noch im Attribut 'readingsConfig' einem Reading zugewiesen werden.
-
+  </ul>
   <br><br>
 
 <a name="COE_Nodeattr"></a>
