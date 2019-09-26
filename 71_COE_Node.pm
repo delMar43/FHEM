@@ -145,7 +145,6 @@ sub COE_Node_HandleData {
     COE_Node_HandleAnalogValues($hash, $canNodePartId, $bytes);
   } else {
     COE_Node_HandleDigitalValues($hash, $canNodePartId, $bytes);
-#    Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][] digital value. skipping for now";    
   }
   readingsEndUpdate($hash, 1);
 
@@ -184,9 +183,9 @@ sub COE_Node_HandleAnalogValues {
       my $reading = $hash->{helper}{mapping}{$entryId};
       readingsBulkUpdateIfChanged( $hash, $reading, $value );
 
-      Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][$entryId][type=$type][value=$value]  configured: $reading";
+      Log3 $name, 4, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][$entryId][type=$type][value=$value]  configured: $reading";
     } else {
-      Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][$entryId][type=$type][value=$value]  $entryId not configured. Skipping.";
+      Log3 $name, 0, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][$entryId][type=$type][value=$value]  $entryId not configured. Skipping.";
     }
   }
 }
@@ -202,7 +201,7 @@ sub COE_Node_HandleDigitalValues {
   for (my $i=0; $i < 16; $i++) {
     my $reading = $hash->{helper}{mapping}{$i+1};
     readingsBulkUpdateIfChanged( $hash, $reading, $bits[$i] );
-    Log3 $name, 3, "COE_Node ($name) - [$canNodeId][$canNodePartId][".($i+1)."] = $bits[$i]";
+    Log3 $name, 4, "COE_Node ($name) - [$canNodeId][$canNodePartId][".($i+1)."] = $bits[$i]";
   }
 }
 

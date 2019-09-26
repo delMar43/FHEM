@@ -103,7 +103,7 @@ sub CanOverEthernet_Read($) {
   $hash->{STATE} = 'Last: '.gmtime();
   $hash->{CD}->recv($buf, 14);
   $data = unpack('H*', $buf);
-  Log3 $name, 4, "CanOverEthernet ($name) - Client said $data";
+  Log3 $name, 5, "CanOverEthernet ($name) - Client said $data";
 
   Dispatch($hash, $buf);
 
@@ -121,8 +121,8 @@ sub CanOverEthernet_Set ($@)
   my ( $hash, $name, $cmd, @args ) = @_;
 
   if ( 'sendData' eq $cmd ) {
-    CanOverEthernet_parseSendDataCommand( $hash, $name, @args );
-    
+    my ( $targetIp, $targetNode, @values, @types ) = CanOverEthernet_parseSendDataCommand( $hash, $name, @args );
+    return CanOverEthernet_sendData ( $hash, $targetIp, $targetNode, @values, @types );
   }
 
   return 'sendData';
@@ -140,12 +140,12 @@ sub CanOverEthernet_parseSendDataCommand {
   my @types;
   my $page;
 
-  for (my $i=0; $i <= $#valuesAndTypes; $i++) {
+  for ( my $i=0; $i <= $#valuesAndTypes; $i++ ) {
     my ( $index, $value, $type ) = split /[=;]/, $valuesAndTypes[$i];
 
     if ( $index < 0 || $index > 32 ) {
       Log3 $name, 0, "CanOverEthernet ($name) - sendData: index $index is out of bounds [1-32]. Value will not be sent.";
-      continue;
+      next;
     }
 
     my $pIndex; #index inside of page (eg 18 is pIndex 2 on page 1)
@@ -170,18 +170,67 @@ sub CanOverEthernet_parseSendDataCommand {
     }
 
     $values[$page][$pIndex] = $value;
-#    Log3 $name, 4, "CanOverEthernet ($name) - $index = $value. type=$type";
+    Log3 $name, 4, "CanOverEthernet ($name) - $index = $value - type=$type - page $page";
   }
 
-  Log3 $name, 4, "CanOverEthernet ($name) - valuesAndTypes: @valuesAndTypes";
-  return;
-  
-  
+  return ( $targetIp, $targetNode, @values, @types );
+}
+
+sub CanOverEthernet_sendData {
+  my ( $hash, $targetIp, $targetNode, @values, @types ) = @_;
+  my $name = $hash->{NAME};
+
   my $socket = new IO::Socket::INET (
     PeerAddr=>$targetIp,
     PeerPort=>5441,
     Proto=>"udp"
   );
+
+  # prepare digital values (2 bytes, 16 bits for 16 values)
+  my $digiVals = '';
+  for (my $idx=0; $idx < 16; $idx++) {
+    
+    if(defined($values[0][$idx])) {
+      $digiVals = $digiVals . ($values[0][$idx] == '1' ? "\001" : "\000");
+    } else {
+      $digiVals = $digiVals . "\000";
+    }
+  }
+
+  # pad the rest of the 14 bytes with zeroes
+  for (my $idx=16; $idx < 96; $idx++) {
+    $digiVals = $digiVals."\000";
+  }
+
+  Log3 $name, 4, "CanOverEthernet ($name) - Digi values: $digiVals length: " . length($digiVals);
+
+  my $out = pack('CCb*', $targetNode, 0, $digiVals);
+  my $data = unpack('H*', $out);
+
+  Log3 $name, 4, "CanOverEthernet ($name) - out: $out length " . length($out);
+
+  $socket->send($out);
+
+  for ( my $pageIndex=1; $pageIndex <= 4; $pageIndex++ ) {
+    my $nrEntries = @{$values[$pageIndex] // []};
+    Log3 $name, 4, "CanOverEthernet ($name) - page $pageIndex has $nrEntries entries.";
+    if ( $nrEntries == 0 ) {
+      next;
+    }
+
+    my $nrVals = $pageIndex == 0 ? 16 : 4;
+    for ( my $valIndex=0; $valIndex < $nrVals; $valIndex++ ) {
+      Log3 $name, 4, "CanOverEthernet ($name) - value $valIndex = $values[$pageIndex][$valIndex] type=$types[$pageIndex][$valIndex]";
+    }
+
+#    $socket->send($out);
+  }
+
+  $socket->close();
+#  Log3 $name, 4, "CanOverEthernet ($name) - valuesAndTypes: @valuesAndTypes";
+  return;
+  
+  
 
   Log3 $name, 4, "CanOverEthernet ($name) - UDP Socket opened";
   
@@ -193,7 +242,6 @@ sub CanOverEthernet_parseSendDataCommand {
     my $data = unpack('H*', $out);
     Log3 $name, 4, "CanOverEthernet ($name) - sendData sending $data to IP $targetIp, CAN-Node $targetNode";
 
-    $socket->send($out);
     Log3 $name, 4, "CanOverEthernet ($name) - sendData done.";
     $socket->close();
 
