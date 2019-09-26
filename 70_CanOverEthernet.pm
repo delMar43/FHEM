@@ -185,6 +185,12 @@ sub CanOverEthernet_sendData {
     PeerPort=>5441,
     Proto=>"udp"
   );
+  
+  if ( !$socket ) {
+    Log3 $name, 0, "CanOverEthernet ($name) - sendData failed to create network socket";
+
+    return;
+  }
 
   # prepare digital values (2 bytes, 16 bits for 16 values)
   my $digiVals = '';
@@ -202,13 +208,7 @@ sub CanOverEthernet_sendData {
     $digiVals = $digiVals."\000";
   }
 
-  Log3 $name, 4, "CanOverEthernet ($name) - Digi values: $digiVals length: " . length($digiVals);
-
   my $out = pack('CCb*', $targetNode, 0, $digiVals);
-  my $data = unpack('H*', $out);
-
-  Log3 $name, 4, "CanOverEthernet ($name) - out: $out length " . length($out);
-
   $socket->send($out);
 
   for ( my $pageIndex=1; $pageIndex <= 4; $pageIndex++ ) {
@@ -218,39 +218,38 @@ sub CanOverEthernet_sendData {
       next;
     }
 
-    my $nrVals = $pageIndex == 0 ? 16 : 4;
-    for ( my $valIndex=0; $valIndex < $nrVals; $valIndex++ ) {
+    my @pageVals;
+    my @pageTypes;
+    for ( my $valIndex=0; $valIndex < 4; $valIndex++ ) {
       Log3 $name, 4, "CanOverEthernet ($name) - value $valIndex = $values[$pageIndex][$valIndex] type=$types[$pageIndex][$valIndex]";
+      my $val = $values[$pageIndex][$valIndex];
+      my $type = $types[$pageIndex][$valIndex];
+      $pageVals[$valIndex] = CanOverEthernet_getValue( $val );
+      $pageTypes[$valIndex] = ( defined($type) ? $type : 0);
     }
+    my $out = pack('CCS<S<S<S<CCCC', $targetNode, $pageIndex, @pageVals, @pageTypes);
 
-#    $socket->send($out);
+    $socket->send($out);
   }
+
+  Log3 $name, 4, "CanOverEthernet ($name) - sendData done.";
 
   $socket->close();
-#  Log3 $name, 4, "CanOverEthernet ($name) - valuesAndTypes: @valuesAndTypes";
-  return;
-  
-  
 
-  Log3 $name, 4, "CanOverEthernet ($name) - UDP Socket opened";
-  
-  
-  if ($socket) {
+}
 
-    my $out = pack('CCS<S<S<S<CCCC', $targetNode,1,227,0,0,0,1,0,0,0);
-
-    my $data = unpack('H*', $out);
-    Log3 $name, 4, "CanOverEthernet ($name) - sendData sending $data to IP $targetIp, CAN-Node $targetNode";
-
-    Log3 $name, 4, "CanOverEthernet ($name) - sendData done.";
-    $socket->close();
-
-  } else {
-    Log3 $name, 0, "CanOverEthernet ($name) - sendData failed to create network socket";
-    return;
-
+sub CanOverEthernet_getValue {
+  my $input = @_;
+  if ( undef($input) ) {
+    return 0;
   }
-  
+
+  #type 1 needs to have 1 decimal place
+  #type 13 needs to have 2 decimal places
+  #but the value is submitted without the dot
+
+  $input =~ s/.//;
+  return $input;
 }
 
 1;
