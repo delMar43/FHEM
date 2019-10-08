@@ -237,7 +237,7 @@ sub CanOverEthernet_sendDataAnalog {
       Log3 $name, 4, "CanOverEthernet ($name) - value $valIndex = $values[$pageIndex][$valIndex] type=$types[$pageIndex][$valIndex]";
       my $val = $values[$pageIndex][$valIndex];
       my $type = $types[$pageIndex][$valIndex];
-      $pageVals[$valIndex] = $val; # CanOverEthernet_getValue( $val );
+      $pageVals[$valIndex] = CanOverEthernet_getValue( $name, $val );
       $pageTypes[$valIndex] = ( defined $type ? $type : 0);
     }
     Log3 $name, 4, "CanOverEthernet ($name) - @pageVals @pageTypes";
@@ -290,19 +290,16 @@ sub CanOverEthernet_sendDataDigital {
 }
 
 sub CanOverEthernet_getValue {
-  my $input = @_;
+  my ( $name, $input ) = @_;
   if ( ! defined $input ) {
     return 0;
   }
-
-  Log3 'dings', 4, "CanOverEthernet - input: $input";
 
   #type 1 needs to have 1 decimal place
   #type 13 needs to have 2 decimal places
   #but the value is submitted without the dot
 
-  $input =~ s/.//;
-  Log3 'dings', 4, "CanOverEthernet - output: $input";
+  $input =~ s/\.//;
   return $input;
 }
 
