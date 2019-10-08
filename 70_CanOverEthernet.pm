@@ -121,8 +121,8 @@ sub CanOverEthernet_Set ($@)
   my ( $hash, $name, $cmd, @args ) = @_;
 
   if ( 'sendData' eq $cmd ) {
-    my ( $targetIp, $targetNode, @values, @types ) = CanOverEthernet_parseSendDataCommand( $hash, $name, @args );
-    return CanOverEthernet_sendData ( $hash, $targetIp, $targetNode, @values, @types );
+    my ( $targetIp, $targetNode, $valuesRef, $typesRef ) = CanOverEthernet_parseSendDataCommand( $hash, $name, @args );
+    return CanOverEthernet_sendData ( $hash, $targetIp, $targetNode, $valuesRef, $typesRef );
   }
 
   return 'sendData';
@@ -170,15 +170,21 @@ sub CanOverEthernet_parseSendDataCommand {
     }
 
     $values[$page][$pIndex] = $value;
-    Log3 $name, 4, "CanOverEthernet ($name) - $index = $value - type=$type - page $page";
+#    Log3 $name, 4, "CanOverEthernet ($name) - absIndex: $index (pageIndex: $pIndex)  = $value - type=$type - page $page";
+#    Log3 $name, 4, "CanOverEthernet ($name) - types[$page][$pIndex] = $types[$page][$pIndex]";
+#    Log3 $name, 4, "CanOverEthernet ($name) - values[$page][$pIndex] = $values[$page][$pIndex]";
+
   }
 
-  return ( $targetIp, $targetNode, @values, @types );
+  return ( $targetIp, $targetNode, \@values, \@types );
 }
 
 sub CanOverEthernet_sendData {
-  my ( $hash, $targetIp, $targetNode, @values, @types ) = @_;
+  my ( $hash, $targetIp, $targetNode, $valuesRef, $typesRef ) = @_;
   my $name = $hash->{NAME};
+
+  my @values = @{$valuesRef};
+  my @types = @{$typesRef};
 
   my $socket = new IO::Socket::INET (
     PeerAddr=>$targetIp,
@@ -224,9 +230,10 @@ sub CanOverEthernet_sendData {
       Log3 $name, 4, "CanOverEthernet ($name) - value $valIndex = $values[$pageIndex][$valIndex] type=$types[$pageIndex][$valIndex]";
       my $val = $values[$pageIndex][$valIndex];
       my $type = $types[$pageIndex][$valIndex];
-      $pageVals[$valIndex] = CanOverEthernet_getValue( $val );
-      $pageTypes[$valIndex] = ( defined($type) ? $type : 0);
+      $pageVals[$valIndex] = $val; # CanOverEthernet_getValue( $val );
+      $pageTypes[$valIndex] = ( defined $type ? $type : 0);
     }
+    Log3 $name, 4, "CanOverEthernet ($name) - @pageVals @pageTypes";
     my $out = pack('CCS<S<S<S<CCCC', $targetNode, $pageIndex, @pageVals, @pageTypes);
 
     $socket->send($out);
@@ -240,15 +247,18 @@ sub CanOverEthernet_sendData {
 
 sub CanOverEthernet_getValue {
   my $input = @_;
-  if ( undef($input) ) {
+  if ( ! defined $input ) {
     return 0;
   }
+
+  Log3 'dings', 4, "CanOverEthernet - input: $input";
 
   #type 1 needs to have 1 decimal place
   #type 13 needs to have 2 decimal places
   #but the value is submitted without the dot
 
   $input =~ s/.//;
+  Log3 'dings', 4, "CanOverEthernet - output: $input";
   return $input;
 }
 
