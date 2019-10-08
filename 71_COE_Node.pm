@@ -162,7 +162,7 @@ sub COE_Node_HandleAnalogValues {
 
   #iterate through data entries. 4 entries max per incoming UDP packet
   for (my $i=0; $i < 4; $i++) {
-    my $outputId = ($i+($canNodePartId-1)*4 +1);
+    my $outputId = ($i + ($canNodePartId-1) * 4 +17);
     my $entryId = $outputId;
     my $existingConfig = exists $hash->{helper}{mapping}{$entryId};
     my $value = $values[$i];
@@ -183,9 +183,9 @@ sub COE_Node_HandleAnalogValues {
       my $reading = $hash->{helper}{mapping}{$entryId};
       readingsBulkUpdateIfChanged( $hash, $reading, $value );
 
-      Log3 $name, 4, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][$entryId][type=$type][value=$value]  configured: $reading";
+      Log3 $name, 4, "COE_Node ($name) - [$canNodeId][$canNodePartId][$i][$entryId][type=$type][value=$value]  configured: $reading";
     } else {
-      Log3 $name, 0, "COE_Node ($name) - [$canNodeId][$canNodePartId][$outputId][$entryId][type=$type][value=$value]  $entryId not configured. Skipping.";
+      Log3 $name, 0, "COE_Node ($name) - [$canNodeId][$canNodePartId][$i][$entryId][type=$type][value=$value]  $entryId not configured. Skipping.";
     }
   }
 }
