@@ -278,7 +278,8 @@ sub COE_Node_Set {
   <b>Attributes</b>
   <br><br>
   <ul>
-    <li><code>readingsConfig {index=reading-name}</code><br>This maps received values to readings. eg <code>1=Flowrate_Solar 2=T.Solar_Backflow</code></li>
+    <li><a href="#readingsConfigAnalog">readingsConfigAnalog {index=reading-name}</a><br>This maps received analog values to readings. eg <code>1=Flowrate_Solar 2=T.Solar_Backflow</code></li>
+    <li><a href="#readingsConfigDigital">readingsConfigDigital {index=reading-name}</a><br>This maps received digital values to readings. eg <code>1=Pump_Solar_Power 2=Pump_Water_Power</code></li>
   </ul>
 
 =end html
@@ -307,7 +308,8 @@ sub COE_Node_Set {
   <b>Attributes</b>
   <br><br>
   <ul>
-    <li><code>readingsConfig {index=reading-name}</code><br>Ordnet Werte einem Reading zu. zB <code>1=Durchfluss_Solar 2=T.Solar_Rücklauf</code></li>
+    <li><a href="#readingsConfigAnalog">readingsConfigAnalog {index=reading-name}</a><br>Ordnet analoge Werte einem Reading zu. zB  <code>1=Durchfluss_Solar 2=T.Solar_R&uuml;cklauf</code></li>
+    <li><a href="#readingsConfigDigital">readingsConfigDigital {index=reading-name}</a><br>Ordnet digitale Werte einem Reading zu. zB  <code>1=Solarpumpe_Status 2=Wasserpumpe_Status</code></li>
   </ul>
 
 =end html_DE

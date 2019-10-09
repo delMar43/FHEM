@@ -39,7 +39,6 @@ use DevIo;
 sub CanOverEthernet_Initialize($) {
   my ($hash) = @_;
    
-#  $hash->{GetFn}     = "CanOverEthernet_Get";
   $hash->{SetFn}     = "CanOverEthernet_Set";
   $hash->{DefFn}     = "CanOverEthernet_Define";
   $hash->{UndefFn}   = "CanOverEthernet_Undef";
@@ -192,12 +191,7 @@ sub CanOverEthernet_parseAnalog {
 
     $pIndex = $index - (($page-1)*4) -1;
     $types[$page][$pIndex] = $type;
-
     $values[$page][$pIndex] = $value;
-#    Log3 $name, 4, "CanOverEthernet ($name) - absIndex: $index (pageIndex: $pIndex)  = $value - type=$type - page $page";
-#    Log3 $name, 4, "CanOverEthernet ($name) - types[$page][$pIndex] = $types[$page][$pIndex]";
-#    Log3 $name, 4, "CanOverEthernet ($name) - values[$page][$pIndex] = $values[$page][$pIndex]";
-
   }
 
   return ( $targetIp, $targetNode, \@values, \@types );
@@ -222,11 +216,9 @@ sub CanOverEthernet_sendDataAnalog {
     return;
   }
 
-  ### analog 
-
   for ( my $pageIndex=1; $pageIndex <= 4; $pageIndex++ ) {
     my $nrEntries = @{$values[$pageIndex] // []};
-    Log3 $name, 4, "CanOverEthernet ($name) - page $pageIndex has $nrEntries entries.";
+    Log3 $name, 5, "CanOverEthernet ($name) - page $pageIndex has $nrEntries entries.";
     if ( $nrEntries == 0 ) {
       next;
     }
@@ -240,13 +232,10 @@ sub CanOverEthernet_sendDataAnalog {
       $pageVals[$valIndex] = CanOverEthernet_getValue( $name, $val );
       $pageTypes[$valIndex] = ( defined $type ? $type : 0);
     }
-    Log3 $name, 4, "CanOverEthernet ($name) - @pageVals @pageTypes";
     my $out = pack('CCS<S<S<S<CCCC', $targetNode, $pageIndex, @pageVals, @pageTypes);
 
     $socket->send($out);
   }
-
-  Log3 $name, 4, "CanOverEthernet ($name) - sendData done.";
 
   $socket->close();
 }
@@ -285,7 +274,6 @@ sub CanOverEthernet_sendDataDigital {
 
   my $out = pack('CCb*', $targetNode, 0, $digiVals);
   $socket->send($out);
-
   $socket->close();
 }
 
@@ -331,6 +319,20 @@ sub CanOverEthernet_getValue {
     are created on-the-fly.    
   </ul>
 
+<a name="CanOverEthernetset"><b>Set</b></a>
+  <ul>
+    <li><a href="#sendDataAnalog">sendDataAnalog</a><br>Sends analog values.<br>Example:
+    <code>set <name> sendDataAnalog &lt;Target-IP&gt; &lt;CAN-Channel&gt; &lt;Index&gt;=&lt;Value&gt;;&lt;Type&gt;<br>
+    set coe sendDataAnalog 192.168.1.1 3 1=22.7;1 2=18.0;1
+    </code>
+    </li>
+    <li><a href="#sendDataDigital">sendDataDigital</a><br>Sends digital values. This can be 0 or 1.<br>Example:
+    <code>set <name> sendDataDigital &lt;Target-IP&gt; &lt;CAN-Channel&gt; &lt;Index&gt;=&lt;Value&gt;<br>
+    set coe sendDataDigital 192.168.1.1 3 1=1 2=0
+    </code>
+    </li>
+  </ul>
+
 =end html
 
 =begin html_DE
@@ -351,6 +353,19 @@ sub CanOverEthernet_getValue {
     </ul>
     Die eingehenden Daten werden als readings in eigenen COE_Node devices gespeichert.
     Diese devices werden automatisch angelegt, sobald Daten dafür empfangen werden.
+  </ul>
+<a name="CanOverEthernetset"><b>Set</b></a>
+  <ul>
+    <li><a href="#sendDataAnalog">sendDataAnalog</a><br>Sendet analoge Werte.<br>Beispiel:
+      <code>set <name> sendDataAnalog &lt;Target-IP&gt; &lt;CAN-Channel&gt; &lt;Index&gt;=&lt;Value&gt;;&lt;Type&gt;<br>
+      set coe sendDataAnalog 192.168.1.1 3 1=22.7;1 2=18.0;1
+      </code>
+    </li>
+    <li><a href="#sendDataDigital">sendDataDigital</a><br>Sends digitale Werte. Also nur 0 oder 1.<br>Beispiel:
+      <code>set <name> sendDataDigital &lt;Target-IP&gt; &lt;CAN-Channel&gt; &lt;Index&gt;=&lt;Value&gt;<br>
+      set coe sendDataDigital 192.168.1.1 3 1=1 2=0
+      </code>
+    </li>
   </ul>
 
 =end html_DE
