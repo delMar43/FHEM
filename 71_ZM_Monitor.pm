@@ -26,7 +26,7 @@
 #
 # Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,91847.0.html
 #
-# $Id: 71_ZM_Monitor.pm 17479 2018-10-07 16:53:23Z delmar $
+# $Id: 71_ZM_Monitor.pm 20028 2019-08-20 09:54:08Z delmar $
 #
 ##############################################################################
 
@@ -220,10 +220,23 @@ sub ZM_Monitor_Set {
     if (grep { $_ eq $arg } @ZM_Alarms) {
 
       $arg .= ' '.$args[1] if ( 'on-for-timer' eq $arg );
+
+      my ( $unnamedParams, $namedParams ) = parseParams(join(' ', @args));
+      my $cause = 'fhem';
+      my $notes = '';
+      if( defined($namedParams->{'cause'}) ) {
+        $cause = $namedParams->{'cause'};
+      }
+      if( defined($namedParams->{'notes'}) ) {
+        $notes = $namedParams->{'notes'};
+      }
+
       my $arguments = {
         method => 'changeMonitorAlarm',
         zmMonitorId => $hash->{helper}{ZM_MONITOR_ID},
-        zmAlarm => $arg
+        zmAlarm => $arg,
+        zmCause => $cause,
+        zmNotes => $notes
       };
       my $result = IOWrite($hash, $arguments);
       return $result;
@@ -502,7 +515,7 @@ sub ZM_Monitor_Notify {
   <a name="ZM_Monitorset"></a>
   <b>Set</b>
   <ul>
-    <li><code>alarmState</code><br>Puts a monitor into alarm state or out of alarm state via the ZoneMinder trigger port.</li>
+    <li><code>alarmState</code><br>Puts a monitor into alarm state or out of alarm state via the ZoneMinder trigger port. Can also take one or both of <code>cause="xxx" notes="xxx"</code> parameters</li>
     <li><code>monitorFunction</code><br>Sets the operating mode of a Monitor in ZoneMinder via the ZoneMinder API.</li>
     <li><code>motionDetectionEnabled</code><br>Enables or disables monitor detection of a monitor via ZoneMinder API.</li>
     <li><code>text</code><br/>Allows you to set a text for a Timestamp's <code>%Q</code> portion in ZoneMinder via the ZoneMinder trigger port.</li>
