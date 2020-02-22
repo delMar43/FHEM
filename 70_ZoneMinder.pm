@@ -25,7 +25,7 @@
 #
 # Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,91847.0.html
 #
-# $Id$
+# $Id: 70_ZoneMinder.pm 20463 2019-11-06 14:11:20Z delmar $
 #
 ##############################################################################
 
@@ -262,6 +262,7 @@ sub ZoneMinder_API_Login_Callback {
         }
 
         $apiState = 'opened';
+        ZoneMinder_SimpleGet($hash, "$zmApiUrl/monitors.json", \&ZoneMinder_API_UpdateMonitors_Callback);
       }
 
       if ( $apiVersion eq 'post132' ) {
@@ -434,7 +435,7 @@ sub ZoneMinder_GetFromJson {
     my $poma = $`;
     $searchLength = length($ma);
   } else {
-    Log3 $name, 1, "ZoneMinder ($name) - $searchString NOT found. Please report, this is a problem.";
+    Log3 $name, 4, "ZoneMinder ($name) - $searchString NOT found in $config.";
     return;
   }
 
@@ -457,7 +458,8 @@ sub ZoneMinder_API_UpdateMonitors_Callback {
 
   foreach my $monitorData (@monitors) {
     my $monitorId = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Id');
-
+    
+    next if ! defined $monitorId;
     if ( $monitorId =~ /^[0-9]+$/ ) {
       ZoneMinder_UpdateMonitorAttributes($hash, $monitorData, $monitorId);
     } else {
@@ -474,8 +476,9 @@ sub ZoneMinder_UpdateMonitorAttributes {
   my $function = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Function');
   my $enabled = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Enabled');
   my $streamReplayBuffer = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'StreamReplayBuffer');
+  my $monitorType = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Type');
 
-  my $msg = "monitor:$monitorId|$function|$enabled|$streamReplayBuffer";
+  my $msg = "monitor:$monitorId|$function|$enabled|$streamReplayBuffer|$monitorType";
   
   my $dispatchResult = Dispatch($hash, $msg, undef);
 }
@@ -491,8 +494,10 @@ sub ZoneMinder_API_CreateMonitors_Callback {
   foreach my $monitorData (@monitors) {
     my $monitorId = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Id');
 
+    next if ! defined $monitorId;    
     if ( $monitorId =~ /^[0-9]+$/ ) {
-      my $dispatchResult = Dispatch($hash, "createMonitor:$monitorId", undef);
+      my $monitorType = ZoneMinder_GetConfigValueByKey($hash, $monitorData, 'Type');
+      my $dispatchResult = Dispatch($hash, "createMonitor:$monitorId|$monitorType", undef);
     }
   }
   my $zmApiUrl = ZoneMinder_getZmApiUrl($hash);
@@ -632,6 +637,9 @@ sub ZoneMinder_API_QueryEventDetails_Callback {
   $data =~ s/\R//g;
 
   my $zmMonitorId = ZoneMinder_GetConfigValueByKey($hash, $data, 'MonitorId');
+  if ( ! defined $zmMonitorId ) {
+    return undef;
+  }
   my $zmEventId = ZoneMinder_GetConfigValueByKey($hash, $data, 'Id');
   my $zmNotes = ZoneMinder_GetConfigValueByKey($hash, $data, 'Notes');
 
@@ -852,6 +860,7 @@ sub ZoneMinder_Ready {
   <br><br>
   <ul>
     <li><code>apiTimeout &lt;seconds&gt;</code><br>This defines the request timeout in seconds for calls to the ZoneMinder API (right now, only for the login)</li>
+    <li><code>apiVersion</code><br>If you use ZoneMinder 1.32, this must be set to 'post132'</li>
     <li><code>publicAddress &lt;address&gt;</code><br>This configures public accessibility of your LAN (eg your ddns address). Define a valid URL here, eg <code>https://my.own.domain:2344</code></li>
     <li><code>webConsoleContext &lt;path&gt;</code><br>If not set, this defaults to <code>/zm</code>. This is used for building the URL to the ZoneMinder web console.</li>
     <li><code>usePublicUrlForZmWeb</code><br>If a public address is defined, this setting will use the public address for connecting to ZoneMinder API, instead of trying to use the IP-address.</li>

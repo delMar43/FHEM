@@ -26,7 +26,7 @@
 #
 # Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,96170.0.html
 #
-# $Id: 71_COE_Node.pm 20239 2019-09-24 18:03:38Z delmar $
+# $Id: 71_COE_Node.pm 20596 2019-11-26 08:11:08Z delmar $
 #
 ##############################################################################
 
@@ -170,7 +170,7 @@ sub COE_Node_HandleAnalogValues {
 
     if ($existingConfig) {
 
-      if ($type == 1) {
+      if ($type == 1 || $type == 10) {
         $value = (substr $value, 0, (length $value)-1) . "." . (substr $value, -1);
       } elsif ($type == 13) {
         $value = (substr $value, 0, (length $value)-2) . "." . (substr $value, -2);

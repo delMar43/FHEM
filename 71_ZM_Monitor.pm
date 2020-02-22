@@ -26,7 +26,7 @@
 #
 # Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,91847.0.html
 #
-# $Id: 71_ZM_Monitor.pm 20028 2019-08-20 09:54:08Z delmar $
+# $Id: 71_ZM_Monitor.pm 20463 2019-11-06 14:11:20Z delmar $
 #
 ##############################################################################
 
@@ -392,11 +392,12 @@ sub ZM_Monitor_handleMonitorUpdate {
   my ( $io_hash, $message ) = @_;
 
   my $ioName = $io_hash->{NAME};
-  my @msgTokens = split(/\|/, $message); #$message = "$monitorId|$function|$enabled|$streamReplayBuffer";
+  my @msgTokens = split(/\|/, $message); #$message = "$monitorId|$function|$enabled|$streamReplayBuffer|$monitorType";
   my $zmMonitorId = $msgTokens[0];
   my $function = $msgTokens[1];
   my $enabled = $msgTokens[2];
   my $streamReplayBuffer = $msgTokens[3];
+  my $monitorType = $msgTokens[4];
   my $logDevAddress = $ioName.'_'.$zmMonitorId;
 
   if ( my $hash = $modules{ZM_Monitor}{defptr}{$logDevAddress} ) {
@@ -405,6 +406,8 @@ sub ZM_Monitor_handleMonitorUpdate {
     readingsBulkUpdateIfChanged($hash, 'motionDetectionEnabled', $enabled);
     my $bufferChanged = readingsBulkUpdateIfChanged($hash, 'streamReplayBuffer', $streamReplayBuffer);
     readingsEndUpdate($hash, 1);
+
+    $hash->{model} = $monitorType;
 
     ZM_Monitor_UpdateStreamUrls($hash);
 
@@ -422,11 +425,12 @@ sub ZM_Monitor_handleMonitorCreation {
   my ( $io_hash, $message ) = @_;
 
   my $ioName = $io_hash->{NAME};
-  my @msgTokens = split(/\|/, $message); #$message = "$monitorId";
+  my @msgTokens = split(/\|/, $message); #$message = "$monitorId|$monitorType";
   my $zmMonitorId = $msgTokens[0];
   my $logDevAddress = $ioName.'_'.$zmMonitorId;
 
   if ( my $hash = $modules{ZM_Monitor}{defptr}{$logDevAddress} ) {
+    $hash->{model} = $msgTokens[1];
     return $hash->{NAME};
   } else {
     my $autocreate = "UNDEFINED ZM_Monitor_$logDevAddress ZM_Monitor $zmMonitorId";

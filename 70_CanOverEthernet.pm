@@ -26,7 +26,7 @@
 #
 # Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,96170.0.html
 #
-# $Id: 70_CanOverEthernet.pm 20239 2019-09-24 18:03:38Z delmar $
+# $Id: 70_CanOverEthernet.pm 20466 2019-11-06 19:51:19Z delmar $
 #
 ##############################################################################
 package main;
@@ -72,6 +72,11 @@ sub CanOverEthernet_Define($$) {
 
   my $portno = 5441;
   my $conn = IO::Socket::INET->new(Proto=>"udp",LocalPort=>$portno);
+
+  if ( ! defined $conn ) {  
+    Log3 $name, 0, "CanOverEthernet ($name) - ERROR: Unable to open port 5441 for reading. Maybe it's opened by another process already?";
+    return undef;
+  }
  
   $hash->{FD}    = $conn->fileno();
   $hash->{CD}    = $conn;
@@ -226,9 +231,15 @@ sub CanOverEthernet_sendDataAnalog {
     my @pageVals;
     my @pageTypes;
     for ( my $valIndex=0; $valIndex < 4; $valIndex++ ) {
-      Log3 $name, 4, "CanOverEthernet ($name) - value $valIndex = $values[$pageIndex][$valIndex] type=$types[$pageIndex][$valIndex]";
       my $val = $values[$pageIndex][$valIndex];
       my $type = $types[$pageIndex][$valIndex];
+
+      if ( ! defined $val || ! defined $type ) {
+        Log3 $name, 4, "CanOverEthernet ($name) - page $pageIndex value $valIndex has no type or no value set. Skipping.";
+        next;
+      }
+
+      Log3 $name, 4, "CanOverEthernet ($name) - value $valIndex = $values[$pageIndex][$valIndex] type=$types[$pageIndex][$valIndex]";
       $pageVals[$valIndex] = CanOverEthernet_getValue( $name, $val );
       $pageTypes[$valIndex] = ( defined $type ? $type : 0);
     }
@@ -260,8 +271,8 @@ sub CanOverEthernet_sendDataDigital {
   my $digiVals = '';
   for (my $idx=0; $idx < 32; $idx++) {
 
-    if(defined($values[0][$idx])) {
-      $digiVals = $digiVals . ($values[0][$idx] == '1' ? "\001" : "\000");
+    if(defined($values[$idx])) {
+      $digiVals = $digiVals . ($values[$idx] == '1' ? "\001" : "\000");
     } else {
       $digiVals = $digiVals . "\000";
     }
