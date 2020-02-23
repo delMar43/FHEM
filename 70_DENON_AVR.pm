@@ -118,9 +118,6 @@ my $DENON_db = {
 		    'absolute'    => 'ABS',
         },
 	'SSVCTZMAMLV' =>  {           #MutingLevel
-#		    'MUT' => 'mute',
-#			 '040' => '-40db',
-#			 '060' => '-20db',
 			 'mute' => 'MUT',
 			 '-40db' => '040',
 			 '-20db' => '060',
