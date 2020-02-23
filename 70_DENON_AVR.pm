@@ -149,6 +149,9 @@ my $DENON_db = {
 		'Stereo' 			=> 'STEREO',
 		'Auto' 				=> 'AUTO',
 		'Dolby_Digital' 		=> 'DOLBY DIGITAL',
+		'Dolby_Digital_plus' 		=> 'DOLBY D+',
+		'Dolby_Digital_plus dig.Surround' 		=> 'DOLBY D+ +DS',
+		'Dolby_Surround' 		=> 'DOLBY SURROUND',
 		'DTS_Surround' 			=> 'DTS SURROUND',
 		'Auro3D' 			=> 'AURO3D',
 		'Auro2D_Surround' 		=> 'AURO2DSURR',
@@ -179,6 +182,7 @@ my $DENON_db = {
 		'Dolby_Audio_Digital'		=> 'DOLBY AUDIO-DD',
 		'Dolby_Audio_Digital-Surround'	=> 'DOLBY AUDIO-DD+DSUR',
 		'Dolby_Audio_Digital-Neural:X'	=> 'DOLBY AUDIO-DD+NEURAL:X',
+		'Dolby_Digital_plus-Neural:X'	=> 'MSDOLBY D+ +NEURAL:X',
                 'Virtual' 			=> 'VIRTUAL'
 	},
 	'MU' => {
