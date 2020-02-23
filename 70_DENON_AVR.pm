@@ -114,15 +114,15 @@ my $DENON_db = {
 		'off'    => 'OFF',
 	},
 	'SSVCTZMADIS' =>  {           #Lautstärkeanzeige
-		    'relativ'     => 'REL',
-		    'absolute'    => 'ABS',
+		'relativ'     => 'REL',
+		'absolute'    => 'ABS',
         },
 	'SSVCTZMAMLV' =>  {           #MutingLevel
-			 'mute' => 'MUT',
-			 '-40db' => '040',
-			 '-20db' => '060',
+		'mute' => 'MUT',
+		'-40db' => '040',
+		'-20db' => '060',
 		},  
-		'DC' => {
+	'DC' => {
 		'AUTO'		=> 'auto',
 		'PCM' 		=> 'PCM',
 		'DTS' 		=> 'DTS',
