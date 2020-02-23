@@ -287,8 +287,8 @@ my $DENON_db = {
 		'VVD' 		=> 'Vivid',
 		'STM' 		=> 'Stream',
 		'CTM' 		=> 'Custom',
-		'DAY' 		=> 'ISF Day',
-		'NGT' 		=> 'ISF Night',
+		'DAY' 		=> 'ISF_Day',
+		'NGT' 		=> 'ISF_Night',
 	},
 	'PW' => {
 		'on' 		=> 'ON',
