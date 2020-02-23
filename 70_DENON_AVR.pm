@@ -109,7 +109,7 @@ my $DENON_db = {
 		'SHR'   => 'SurroundHightRight',
 		'TS'    => 'TopSurround',
 	},
-		'SSVCTZMADIS' =>  {           #Lautstärkeanzeige
+	'SSVCTZMADIS' =>  {           #Lautstärkeanzeige
 		    'relativ'     => 'REL',
 		    'absolute'    => 'ABS',
         },
