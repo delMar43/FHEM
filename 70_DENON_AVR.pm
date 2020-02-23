@@ -25,7 +25,7 @@
 #
 # Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,58452.300.html
 #
-# $Id: 70_DENON_AVR.pm 21158 2020-02-09 12:23:25Z delmar $
+# $Id: 70_DENON_AVR.pm 21261 2020-02-23 20:11:33Z delmar $
 
 package main;
 
@@ -3634,7 +3634,7 @@ sub DENON_AVR_RClayout() {
 =pod
 =item device
 =item summary control for DENON (Marantz) AV receivers via network or serial connection
-=item summary_DE Steuerung von DENON (Marantz) AV Receivern per Netzwerk oder serieller Schnittstelle
+=item summary_DE Steuerung von DENON (Marantz) AV Receivern per LAN oder RS-232
 =begin html
 
 
