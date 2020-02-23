@@ -109,6 +109,10 @@ my $DENON_db = {
 		'SHR'   => 'SurroundHightRight',
 		'TS'    => 'TopSurround',
 	},
+		'SSVCTZMADIS' =>  {           #Lautstärkeanzeige
+		    'relativ'     => 'REL',
+		    'absolute'    => 'ABS',
+        },
 	'SSVCTZMAMLV' =>  {           #MutingLevel
 		 'mute' => 'MUT',
 		 '-40db' => '040',
@@ -1778,6 +1782,13 @@ DENON_AVR_Parse(@)
 	{
 		readingsBulkUpdate($hash, "eco", lc($1));
 		$return = "eco ".lc($1);
+	}
+		#Lautstärkeanzeige
+	elsif ($msg =~ /^SSVCTZMADIS.([A-Z]+)/)
+	{
+		my $status = DENON_GetKey('SSVCTZMADIS', $1);
+		readingsBulkUpdate($hash, "Volume-Display", $status) if($status ne "unknown");
+		$return = "Volume-Display ".$status;
 	}
 	  	#Muting-Pegel
 	elsif ($msg =~ /^SSVCTZMAMLV ([A-Z0-9]+)/)
