@@ -109,6 +109,11 @@ my $DENON_db = {
 		'SHR'   => 'SurroundHightRight',
 		'TS'    => 'TopSurround',
 	},
+	'SSVCTZMAMLV' =>  {           #MutingLevel
+		 'mute' => 'MUT',
+		 '-40db' => '040',
+		 '-20db' => '060',
+	},  
 	'DC' => {
 		'AUTO'		=> 'auto',
 		'PCM' 		=> 'PCM',
@@ -1773,6 +1778,13 @@ DENON_AVR_Parse(@)
 	{
 		readingsBulkUpdate($hash, "eco", lc($1));
 		$return = "eco ".lc($1);
+	}
+	  	#Muting-Pegel
+	elsif ($msg =~ /^SSVCTZMAMLV ([A-Z0-9]+)/)
+	{
+		my $status = DENON_GetKey('SSVCTZMAMLV', $1);
+		readingsBulkUpdate($hash, "Muting-Level", $status) if($status ne "unknown");
+		$return = "Muting-Level".$status;
 	}
 	#Dim-Mode Display
 	elsif ($msg =~ /^DIM.([A-Z]+)/)
