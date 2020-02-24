@@ -457,7 +457,8 @@ my $DENON_db = {
 				'SUP03' => 'resolution3',
 				'SUP04' => 'resolution4',
 			},
-			'FRM' => 'firmware',
+			'FRMAVR' => 'firmware_AVR',
+			'FRMDTS' => 'firmware_DTS',
 			'AIS' => {
 				'FSV' => 'samplingRate',
 				'FOR' => 'audioFormat',
@@ -2007,8 +2008,13 @@ DENON_AVR_Parse(@)
 #			}
 			elsif ($1 eq 'INF') # SSINFFRM 0000-0000-0000-00
 			{		
-				#Firmware
-				if ($2 eq "FRM") { # SSINFFRM 0000-0000-0000-00
+				#Firmware_AVR
+				if ($2 eq "FRMAVR") { # SSINFFRMAVR 0000-0000-0000-00
+					my $status = DENON_GetValue('SS', $1, $2);
+					readingsBulkUpdate($hash, $status, $3) if($status ne "unknown");
+					$return = $status." ".$3;
+				}
+				if ($2 eq "FRMDTS") { # SSINFFRMDTS 0.00.00.00
 					my $status = DENON_GetValue('SS', $1, $2);
 					readingsBulkUpdate($hash, $status, $3) if($status ne "unknown");
 					$return = $status." ".$3;
