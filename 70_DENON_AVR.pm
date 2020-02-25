@@ -1494,12 +1494,35 @@ DENON_AVR_Parse(@)
 		readingsBulkUpdate($hash, "Volume-Max", $2.$percent);
 		$return = "Volume-Max".$2;
 	}
-	#Einschaltlautstärke
+		#Einschaltlautstärke
 	elsif ($msg =~ /^SSVCTZMAPON (.+)/)
 	{
-		readingsBulkUpdate($hash, "Volume-Startup", $1);
-		$return = "Volume-Startup ".$1;
-	}
+				
+				my $mutelevel = $1;
+					
+				if($1 eq 'LAS')
+				{
+					readingsBulkUpdate($hash, "Volume-Startup", "last") if($mutelevel ne "unknown");
+					$return = "Volume-Startup"."$1";
+			
+				}
+				elsif($1 eq 'MUT')
+				{
+					readingsBulkUpdate($hash, "Volume-Startup", "mute") if($mutelevel ne "unknown");
+					$return = "Volume-Startup"."$1";
+			
+				}
+				else
+				{
+					if (length($mutelevel) == 2)
+					{
+						$mutelevel = $mutelevel."";
+						
+				readingsBulkUpdate($hash, "Volume-Startup", $mutelevel) if($mutelevel ne "unknown");
+				$return = "Volume-Startup".$mutelevel;
+			}
+			} 
+			}
 	#Volume
 	elsif ($msg =~ /^MV(.+)/)
 	{
