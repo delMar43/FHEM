@@ -1697,7 +1697,7 @@ DENON_AVR_Parse(@)
 			$return = "smartselect ".$quick;
 		}
 	}		
-	#Sound
+		#Sound
 	elsif ($msg =~ /^MS(.+)/)
 	{
 		my $sound = DENON_GetValue('SOUND', $1);
@@ -1708,8 +1708,8 @@ DENON_AVR_Parse(@)
 		}
 		if ($sound ne "unknown")
 		{
-			readingsBulkUpdate($hash, "sound", $sound);
-			$return = "sound ".$sound;	
+			readingsBulkUpdate($hash, "sound_out", $sound);
+			$return = "sound_out ".$sound;	
 		}
 	}
 	#tuner band
@@ -2051,18 +2051,18 @@ DENON_AVR_Parse(@)
 					
 					if ($1 eq 'AIS') 
 					{	
-						#input signal
+									#input signal
 						if ($2 eq 'SIG')
 						{
 							my $signal = DENON_GetValue('SS', $cmd1, $1, $2, $value);
-							readingsBulkUpdate($hash, "signal", $signal) if($signal ne "unknown");
-							$return = "signal ".$signal;
+							readingsBulkUpdate($hash, "sound_signal_in", $signal) if($signal ne "unknown");
+							$return = "sound_signal_in ".$signal;
 							if($signal =~ /^na (.+)/)
 							{
-								my $sound = ReadingsVal( $name, "sound", "?" );
-								Log3 $name, 2, "DENON_AVR $name: unknown input signal <$1>, sound <$sound>.";
+								my $sound = ReadingsVal( $name, "sound_out", "?" );
+								Log3 $name, 2, "DENON_AVR $name: unknown input signal <$1>, sound_out <$sound>.";
 							}
-						}					
+						}						
 						# samplingRate, audioFormat
 						elsif ($2 eq 'FSV' || $2 eq 'FOR')
 						{
@@ -2200,7 +2200,7 @@ DENON_AVR_Get($@)
 
 	return "argument is missing" if (int(@a) < 2 && int(@a) > 3);
 
-	if ($a[1] =~ /^(power|volumeStraight|volume|mute|eco|display|input|disconnect|reconnect|remotecontrol|autoStandby|sound|statusRequest|mediaInfo|surroundMode|zone)$/)
+	if ($a[1] =~ /^(power|volumeStraight|volume|mute|eco|display|input|disconnect|reconnect|remotecontrol|autoStandby|sound_out|statusRequest|mediaInfo|surroundMode|zone)$/)
 	{
 		if ($a[1] eq "statusRequest")
 		{
@@ -2269,7 +2269,7 @@ DENON_AVR_Get($@)
 				push(@inputs, $key);
 			}
 		}
-		return "Unknown argument $a[1], choose one of power volumeStraight volume mute eco display input disconnect reconnect remotecontrol autoStandby sound statusRequest mediaInfo surroundMode zone:2,3,4";
+		return "Unknown argument $a[1], choose one of power volumeStraight volume mute eco display input disconnect reconnect remotecontrol autoStandby sound_out statusRequest mediaInfo surroundMode zone:2,3,4";
 	}
 }
 
