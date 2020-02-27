@@ -25,7 +25,7 @@
 #
 # Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,58452.300.html
 #
-# $Id: 70_DENON_AVR.pm 21272 2020-02-24 21:21:48Z delmar $
+# $Id: 70_DENON_AVR.pm 21295 2020-02-27 20:34:11Z delmar $
 
 package main;
 
