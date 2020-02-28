@@ -3422,7 +3422,7 @@ DENON_AVR_Command_StatusRequest($)
 	DENON_AVR_Write($hash, "MNZST?", "query");				#All Zone Stereo
 	DENON_AVR_Write($hash, "NSE", "query"); 				#Onscreen Display Information List
 	DENON_AVR_Write($hash, "CV ?", "query"); 				#channel volume
-#	DENON_AVR_Write($hash, "SSLEV ?", "query"); 				#channel volume new
+	DENON_AVR_Write($hash, "SSINFFRM ?", "query"); 				#Firmware-Infos
 #	DENON_AVR_Write($hash, "SR?", "query"); 				#record select - older models
   DENON_AVR_Write($hash, "SSVCTZMA ?", "query"); 				#channel volume new
 	DENON_AVR_Write($hash, "SD?", "query"); 				#sound input mode
