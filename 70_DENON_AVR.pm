@@ -194,6 +194,36 @@ my $DENON_db = {
 		'Smart4' 					=> 'SMART4',
 		'Smart5' 					=> 'SMART5',
 	},
+		'MS-set_sound_out' => {                    #to set sound_out
+		'Pure_Direct' 				=> 'PURE DIRECT',
+		'Stereo' 					=> 'STEREO',
+		'Auto' 						=> 'AUTO',
+		'Dolby_Digital' 				=> 'DOLBY DIGITAL',
+		'DTS_Surround' 			=> 'DTS SURROUND',
+		'Auro3D' 					=> 'AURO3D',
+		'Auro2D_Surround' 			=> 'AURO2DSURR',
+		'Multichannel_Stereo' 		=> 'MCH STEREO',
+		'Wide_Screen' 				=> 'WIDE SCREEN',
+		'Super_Stadium' 			=> 'SUPER STADIUM',
+		'Rock_Arena' 				=> 'ROCK ARENA',
+		'Jazz_Club' 					=> 'JAZZ CLUB',
+		'Classic_Concert' 			=> 'CLASSIC CONCERT',
+		'Mono_Movie' 				=> 'MONO MOVIE',
+		'Matrix' 					=> 'MATRIX',
+		'Video_Game' 				=> 'VIDEO GAME',
+		'Dolby_Audio_Surround'	=> 'DOLBY AUDIO-DSUR',
+		'Dolby_Audio_Digital'		=> 'DOLBY AUDIO-DD',
+		'Dolby_Audio_Digital-Surround'		=> 'DOLBY AUDIO-DD+DSUR',
+		'Dolby_Audio_Digital-Neural:X'		=> 'DOLBY AUDIO-DD+NEURAL:X',
+		'Neural:X'					=> 'NEURAL:X',
+		'Virtual' 					=> 'VIRTUAL',
+	},
+	 'MS-set_surroundMode' => {                    #to set surroundMode
+		'Movie' 						=> 'MOVIE',
+		'Music' 						=> 'MUSIC',
+		'Game' 						=> 'GAME',
+		'Direct' 						=> 'DIRECT',
+	},
 	'MU' => {
 		'on' 		=> 'ON',
 		'off' 		=> 'OFF',
@@ -2472,8 +2502,9 @@ DENON_AVR_Set($@)
 			"pictureMode:" . join(",", @pictureMode) . " " .
 			"usedInputs:multiple-strict,"  . join(",", @usedInputs) . " " .
 			"remoteControl:" . join(",", @remoteControl) . " " .
-			"surroundMode:" . join(",", sort keys %{$DENON_db->{'MS'}}) . " " .
-		    "rawCommand"; 	
+			"sound_out:" . join(",", sort keys %{$DENON_db->{'MS-set_sound_out'}}) . " " .
+			"surroundMode:" . join(",", sort keys %{$DENON_db->{'MS-set_surroundMode'}}) . " " .
+		 	"rawCommand"; 	
 		
 	if(AttrVal($name, "dlnaName", "") ne "")
 	{
@@ -2742,6 +2773,16 @@ DENON_AVR_Set($@)
 		readingsEndUpdate($hash, 1);
 		return undef;
 	}		
+	elsif ($a[1] eq "sound_out")
+	{	
+		my $sound = $a[2];		
+		my $cmd = DENON_GetValue('MS', $a[2]);
+		DENON_AVR_Write($hash, "MS".$cmd, "sound_out");
+		
+		readingsBulkUpdate($hash, "sound_out", $sound);	
+		readingsEndUpdate($hash, 1);
+		return undef;	
+	}
 	elsif ($a[1] eq "surroundMode")
 	{	
 		my $sound = $a[2];		
@@ -2751,7 +2792,6 @@ DENON_AVR_Set($@)
 		readingsBulkUpdate($hash, "surroundMode", $sound);	
 		readingsEndUpdate($hash, 1);
 		return undef;	
-	}
 	elsif ($a[1] eq "volumeStraight")
 	{
 		my $volume = $a[2];
