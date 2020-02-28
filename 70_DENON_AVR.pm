@@ -2792,6 +2792,7 @@ DENON_AVR_Set($@)
 		readingsBulkUpdate($hash, "surroundMode", $sound);	
 		readingsEndUpdate($hash, 1);
 		return undef;	
+		}
 	elsif ($a[1] eq "volumeStraight")
 	{
 		my $volume = $a[2];
