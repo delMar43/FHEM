@@ -1714,6 +1714,7 @@ DENON_AVR_Parse(@)
 		my $status = DENON_GetKey('SI', $1);
 		readingsBulkUpdate($hash, "input", $status) if($status ne "unknown");
 		readingsBulkUpdate($hash, "currentStream", "-") if($status ne "Server");
+		readingsBulkUpdate($hash, "sound_signal_in", "-") if($status ne "CD|DOCK|DVR|DVD|BD|TV|SAT\/CBL|SAT|GAME|MPLAY|SAT|AUX1|AUX2|AUX3|AUX4|AUX5|AUX6|AUX7"); #	sets sound_signal_out to "-" if Input <-
 		$hash->{helper}{INPUT} = $1;
 		$return = $status;
 		
