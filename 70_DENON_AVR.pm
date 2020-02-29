@@ -1089,6 +1089,9 @@ DENON_AVR_Define($$)
 	unless (exists($attr{$name}{webCmd})){
 		$attr{$name}{webCmd} = 'volume:muteT:input:surroundMode';
 	}
+	unless (exists($attr{$name}{suppressReading})){
+		$attr{$name}{suppressReading} = 'HASH.*';
+	}
 	unless ( exists( $attr{$name}{cmdIcon} ) ) {
 		$attr{$name}{cmdIcon} = 'muteT:rc_MUTE';
 	}
