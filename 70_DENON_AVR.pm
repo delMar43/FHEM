@@ -318,8 +318,8 @@ my $DENON_db = {
 		'VVD' 		=> 'Vivid',
 		'STM' 		=> 'Stream',
 		'CTM' 		=> 'Custom',
-		'DAY' 		=> 'Day',
-		'NGT' 		=> 'Night',
+		'DAY' 		=> 'ISF_Day',
+		'NGT' 		=> 'ISF_Night',
 	},
 	'PW' => {
 		'on' 		=> 'ON',
@@ -1055,6 +1055,9 @@ sub DENON_AVR_ParseProductTypeName {
       readingsBulkUpdate($hash, 'httpError', $err, 0);
       readingsEndUpdate($hash, 0);
   } elsif($data ne "") {
+      readingsDelete($hash, 'httpState');
+      readingsDelete($hash, 'httpError');
+
       my $productTypeName = $data =~ s/<productTypeName>|<\/productTypeName>//rg;
       Log3 $name, 3, "DENON_AVR ($name) - productTypeName: $productTypeName";
 
