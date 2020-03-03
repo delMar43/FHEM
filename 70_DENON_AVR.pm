@@ -1011,6 +1011,9 @@ sub DENON_AVR_ParseDeviceinfoResponse {
 
       DENON_AVR_RequestProductTypeName($hash);
   } elsif($data ne "") {
+      readingsDelete($hash, 'httpState');
+      readingsDelete($hash, 'httpError');
+
       Log3 $name, 5, "DENON_AVR ($name) - Deviceinfo.xml\n$data";
       my $ref = XMLin($data, KeyAttr => { }, ForceArray => [ ]);
 
@@ -1059,7 +1062,7 @@ sub DENON_AVR_ParseProductTypeName {
       readingsDelete($hash, 'httpError');
 
       my $productTypeName = $data =~ s/<productTypeName>|<\/productTypeName>//rg;
-      Log3 $name, 3, "DENON_AVR ($name) - productTypeName: $productTypeName";
+      Log3 $name, 4, "DENON_AVR ($name) - productTypeName: $productTypeName";
 
       $hash->{model} = $productTypeName;
   }
