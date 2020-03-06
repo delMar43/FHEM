@@ -978,7 +978,7 @@ DENON_GetKey($$;$) {
     }
 }
 
-sub DENON_AVR_PerformHttpRequest {
+sub DENON_AVR_RequestDeviceinfo {
     my ($hash) = @_;
     my $name = $hash->{NAME};
 
@@ -990,13 +990,62 @@ sub DENON_AVR_PerformHttpRequest {
                     hash       => $hash,
                     method     => "GET",
                     header     => "User-Agent: FHEM\r\nAccept: application/xml",
-                    callback   => \&DENON_AVR_ParseHttpResponse
+                    callback   => \&DENON_AVR_ParseDeviceinfoResponse
                 };
 
     HttpUtils_NonblockingGet($param);
 }
 
-sub DENON_AVR_ParseHttpResponse {
+sub DENON_AVR_ParseDeviceinfoResponse {
+  my ($param, $err, $data) = @_;
+  my $hash = $param->{hash};
+  my $name = $hash->{NAME};
+  my $return;
+
+  if($err ne "") {
+      Log3 $name, 0, "DENON_AVR ($name) - Error while requesting ".$param->{url}." - $err";
+      readingsBeginUpdate($hash);
+      readingsBulkUpdate($hash, 'httpState', 'ERROR', 0);
+      readingsBulkUpdate($hash, 'httpError', $err, 0);
+      readingsEndUpdate($hash, 0);
+
+      DENON_AVR_RequestProductTypeName($hash);
+  } elsif($data ne "") {
+      readingsDelete($hash, 'httpState');
+      readingsDelete($hash, 'httpError');
+
+      Log3 $name, 5, "DENON_AVR ($name) - Deviceinfo.xml\n$data";
+      my $ref = XMLin($data, KeyAttr => { }, ForceArray => [ ]);
+
+      my $codes = {
+        '0' => 'Denon',
+        '1' => 'Marantz'
+      };
+      my $brandCode = $ref->{BrandCode};
+
+      $hash->{model} = $codes->{$brandCode} . ' ' . $ref->{ModelName};
+  }
+}
+
+sub DENON_AVR_RequestProductTypeName {
+    my ($hash) = @_;
+    my $name = $hash->{NAME};
+
+    my $url = "http://$hash->{IP}/ajax/get_config?type=25";
+    Log3 $name, 4, "DENON_AVR ($name) - requesting $url";
+    my $param = {
+                    url        => "$url",
+                    timeout    => 5,
+                    hash       => $hash,
+                    method     => "GET",
+                    header     => "User-Agent: FHEM\r\nAccept: application/xml",
+                    callback   => \&DENON_AVR_ParseProductTypeName
+                };
+
+    HttpUtils_NonblockingGet($param);
+}
+
+sub DENON_AVR_ParseProductTypeName {
   my ($param, $err, $data) = @_;
   my $hash = $param->{hash};
   my $name = $hash->{NAME};
@@ -1009,16 +1058,13 @@ sub DENON_AVR_ParseHttpResponse {
       readingsBulkUpdate($hash, 'httpError', $err, 0);
       readingsEndUpdate($hash, 0);
   } elsif($data ne "") {
-      Log3 $name, 5, "DENON_AVR ($name) - Deviceinfo.xml\n$data";
-      my $ref = XMLin($data, KeyAttr => { }, ForceArray => [ ]);
+      readingsDelete($hash, 'httpState');
+      readingsDelete($hash, 'httpError');
 
-      my $codes = {
-        '0' => 'Denon',
-        '1' => 'Marantz'
-      };
-      my $brandCode = $ref->{BrandCode};
+      my $productTypeName = $data =~ s/<productTypeName>|<\/productTypeName>//rg;
+      Log3 $name, 4, "DENON_AVR ($name) - productTypeName: $productTypeName";
 
-      $hash->{model} = $codes->{$brandCode} . ' ' . $ref->{ModelName};
+      $hash->{model} = $productTypeName;
   }
 }
 
@@ -1527,10 +1573,22 @@ DENON_AVR_Parse(@)
 	my $return = "unknown";
 	
 	#Model in Internals
-	if ($msg =~ /^SYMO(.+)EUR/)
+	if ($msg =~ /^SYMO(([A-Z]{2,3})([-]{0,1})([A-Z]{0,1})([0-9]{4})([A-Z]{0,1}))/)
 	{
-		$hash->{MODEL} = $1;
+	my $model = $1;
+		if ($model ne "NR(.+)")
+		{
+			$model = "MARANTZ $1";
+		}
+		if ($model ne "AVR(.+)")
+		{
+			$model = "DENON $1";
+		}
+          $hash->{MODEL} = $model;
+		 
 	}
+	
+	
 	
 	#Power
 	elsif ($msg =~ /^PW(.+)/)
