@@ -32,7 +32,7 @@
 # * https://forum.fhem.de/index.php/topic,41439.0.html (previous discussions)
 # * https://forum.fhem.de/index.php/topic,13534.45.html (previous discussions)
 #
-# $Id: 72_TA_CMI_JSON.pm 21034 2020-01-22 21:50:20Z delmar $
+# $Id: 72_TA_CMI_JSON.pm 21460 2020-03-20 07:07:25Z delmar $
 #
 ##############################################################################
 
@@ -189,7 +189,7 @@ sub TA_CMI_JSON_ParseHttpResponse {
       TA_CMI_JSON_extractReadings($hash, $keyValues, 'Outputs', 'Outputs') if ($queryParams =~ /O/);
 
       if ($queryParams =~ /D/) {
-        if ($canDevice eq 'UVR16x2') {
+        if ($canDevice eq 'UVR16x2' or $canDevice eq 'RSM610' ) {
           TA_CMI_JSON_extractReadings($hash, $keyValues, 'DL-Bus', 'DL-Bus');
         } else {
           Log3 $name, 0, "TA_CMI_JSON ($name) - Reading DL-Bus input is not supported on $canDevice";
