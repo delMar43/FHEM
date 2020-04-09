@@ -25,7 +25,7 @@
 #
 # Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,58452.300.html
 #
-# $Id: 70_DENON_AVR.pm 21334 2020-03-01 20:38:34Z delmar $
+# $Id: 70_DENON_AVR.pm 21632 2020-04-09 08:23:10Z delmar $
 
 package main;
 
@@ -1002,7 +1002,10 @@ sub DENON_AVR_ParseDeviceinfoResponse {
   my $name = $hash->{NAME};
   my $return;
 
-  if($err ne "") {
+  if($err ne '' || $data =~ m/Error 403/) {
+      if ( $err eq '' ) {
+        $err = 'Error 403: Forbidden';
+      }
       Log3 $name, 0, "DENON_AVR ($name) - Error while requesting ".$param->{url}." - $err";
       readingsBeginUpdate($hash);
       readingsBulkUpdate($hash, 'httpState', 'ERROR', 0);
