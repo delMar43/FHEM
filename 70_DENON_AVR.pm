@@ -1574,9 +1574,27 @@ DENON_AVR_Parse(@)
 	my $percent = AttrVal($name, "unit", "off") eq "on" ? " %" : "";
 	my $dezibel = AttrVal($name, "unit", "off") eq "on" ? " dB" : "";
 	my $return = "unknown";
-
+	
+	#Model in Internals
+	if ($msg =~ /^SYMO(([A-Z]{2,3})([-]{0,1})([A-Z]{0,1})([0-9]{4})([A-Z]{0,1}))/)
+	{
+	my $model = $1;
+		if ($model ne "NR(.+)")
+		{
+			$model = "MARANTZ $1";
+		}
+		if ($model ne "AVR(.+)")
+		{
+			$model = "DENON $1";
+		}
+          $hash->{MODEL} = $model;
+		 
+	}
+	
+	
+	
 	#Power
-	if ($msg =~ /^PW(.+)/)
+	elsif ($msg =~ /^PW(.+)/)
 	{
 		my $power = lc($1);
 		if ($power eq "standby")
@@ -3446,6 +3464,7 @@ DENON_AVR_Command_StatusRequest($)
 	
 	Log3 $name, 5, "DENON_AVR $name: called StatusRequest.";
 	
+	DENON_AVR_Write($hash, "SYMO", "query"); 				#Model for Internals 
 	DENON_AVR_Write($hash, "PW?", "query"); 				#power 
 	DENON_AVR_Write($hash, "MU?", "query"); 				#mute
 	DENON_AVR_Write($hash, "MV?", "query"); 				#mastervolume
