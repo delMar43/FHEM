@@ -26,7 +26,7 @@
 #
 # Discussed in FHEM Forum: https://forum.fhem.de/index.php/topic,96170.0.html
 #
-# $Id: 71_COE_Node.pm 20596 2019-11-26 08:11:08Z delmar $
+# $Id: 71_COE_Node.pm 24060 2021-03-22 21:44:19Z delmar $
 #
 ##############################################################################
 
@@ -44,7 +44,7 @@ sub COE_Node_Initialize {
   $hash->{GetFn}       = "COE_Node_Get";
   $hash->{SetFn}       = "COE_Node_Set";
 
-  $hash->{AttrList} = "readingsConfigAnalog readingsConfigDigital " . $readingFnAttributes;
+  $hash->{AttrList} = "readingsConfigAnalog:textField-long readingsConfigDigital:textField-long " . $readingFnAttributes;
   $hash->{Match} = "^.*";
 
   return undef;
@@ -167,15 +167,25 @@ sub COE_Node_HandleAnalogValues {
     my $existingConfig = exists $readingsMapping[$entryId];
     my $value = $values[$i];
     my $type = $types[$i];
+    my $vorz = (substr $value, 0,1);
 
     if ($existingConfig) {
 
+      if ($type == 1 && COE_Node_BeginsWith($value, '-') ) {
+        Log3 $name, 5, "COE_VZV ($value)";
+        $value = $value + 32768;
+        $value = $vorz . $value;
+        Log3 $name, 5, "COE_VZN ($value)";
+      }
       if ($type == 1 || $type == 10) {
         $value = (substr $value, 0, (length $value)-1) . "." . (substr $value, -1);
       } elsif ($type == 13) {
         $value = (substr $value, 0, (length $value)-2) . "." . (substr $value, -2);
       }
 
+      if ( COE_Node_BeginsWith($value, '-.') ) {
+          $value = "-0." . (substr $value, 2, (length $value));
+      }
       if ( COE_Node_BeginsWith($value, '.') ) {
           $value = "0$value";
       }
