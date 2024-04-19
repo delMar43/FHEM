@@ -134,7 +134,7 @@ sub COE_Node_HandleAnalogValues {
 
   my $readings = AttrVal($name, 'readingsConfigAnalog', undef);
   if (! defined $readings) {
-    Log3 $name, 0, "COE_Node ($name) - No config found. Please set readingsConfigAnalog accordingly.";
+    Log3 $name, 3, "COE_Node ($name) - No config found. Please set readingsConfigAnalog accordingly.";
     return undef;
   }
 
@@ -170,9 +170,9 @@ sub COE_Node_HandleAnalogValues {
 
     if ($existingConfig) {
 
-      if ($type == 1 || $type == 10) {
+      if ($type == 1 || $type == 8 || $type == 10 || $type == 14 || $type == 46 || $type == 52 || $type == 58 || $type == 65) {
         $value = (substr $value, 0, (length $value)-1) . "." . (substr $value, -1);
-      } elsif ($type == 13) {
+      } elsif ($type == 13 || $type == 23 || $type == 24) {
         $value = (substr $value, 0, (length $value)-2) . "." . (substr $value, -2);
       }
 
@@ -185,7 +185,7 @@ sub COE_Node_HandleAnalogValues {
 
       Log3 $name, 4, "COE_Node ($name) - [$canNodeId][$canNodePartId][$i][$entryId][type=$type][value=$value]  configured: $reading";
     } else {
-      Log3 $name, 0, "COE_Node ($name) - [$canNodeId][$canNodePartId][$i][$entryId][type=$type][value=$value]  $entryId not configured. Skipping.";
+      Log3 $name, 4, "COE_Node ($name) - [$canNodeId][$canNodePartId][$i][$entryId][type=$type][value=$value]  $entryId not configured. Skipping.";
     }
   }
 }
@@ -200,7 +200,7 @@ sub COE_Node_HandleDigitalValues {
 
   my $readings = AttrVal($name, 'readingsConfigDigital', undef);
   if (! defined $readings) {
-    Log3 $name, 0, "COE_Node ($name) - No config found. Please set readingsConfigDigital accordingly.";
+    Log3 $name, 3, "COE_Node ($name) - No config found. Please set readingsConfigDigital accordingly.";
     return undef;
   }
 
@@ -216,7 +216,7 @@ sub COE_Node_HandleDigitalValues {
   }
 
   if ($canNodeId != $hash->{helper}{CAN_NODE_ID}) {
-    Log3 $name, 0, "COE_Node ($name) - defined nodeId $hash->{canNodeId} != message-nodeId $canNodeId. Skipping message.";
+    Log3 $name, 3, "COE_Node ($name) - defined nodeId $hash->{canNodeId} != message-nodeId $canNodeId. Skipping message.";
     return undef;
   }
 
